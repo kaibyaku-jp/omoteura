@@ -189,6 +189,10 @@ Add the formatter to `.rspec`, next to your usual one:
 Each example's status and failure message go to `tmp/omoteura/results.json`.
 Keep `tmp/omoteura/` out of version control.
 
+When something already measures coverage, as SimpleCov does, the formatter
+also records which lines of your code ran, so the coverage panel can tell
+which methods the tests called. It never starts coverage itself.
+
 
 ## In VS Code
 

@@ -14,7 +14,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ura/` path convention.
 - Resolve `omoteura:` links to specs, methods and statements.
 - `omoteura check` to report broken links and unattached diagrams.
-- `Omoteura::RSpec::Formatter` to record test results as JSON.
+- `Omoteura::RSpec::Formatter` to record test results as JSON, and the lines
+  of the project's code that ran when SimpleCov or another tool measures
+  coverage.
 - `omoteura inspect` and `omoteura diagram`, which give editors one file's or
   one diagram's data as JSON.
 - `omoteura draft` to draft a diagram from code, with every box linked, as
