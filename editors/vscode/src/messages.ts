@@ -19,11 +19,23 @@ export interface Scene {
 }
 
 /** Host to webview. */
-export type HostMessage = { type: "load"; revision: number; scene: Scene } | { type: "error"; message: string };
+export type HostMessage =
+  | { type: "load"; revision: number; scene: Scene }
+  | { type: "error"; message: string }
+  /** Asks for the drawing as Excalidraw saves it. */
+  | { type: "serialize"; requestId: number }
+  /** The drawing as it was at signature is saved. */
+  | { type: "saved"; signature: string }
+  /** Changes one element as the user would; for the integration tests. */
+  | { type: "edit"; elementId: string; changes: Record<string, unknown> };
 
 /** Webview to host. */
 export type WebviewMessage =
   | { type: "ready" }
   | { type: "rendered"; revision: number; elementCount: number }
+  /** The user changed the drawing since it was loaded or saved. */
+  | { type: "changed" }
+  /** signature identifies this state of the drawing, to tell later changes from it. */
+  | { type: "serialized"; requestId: number; drawing: string; signature: string }
   | { type: "openLink"; elementId: string }
   | { type: "failed"; message: string };

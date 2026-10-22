@@ -53,6 +53,26 @@ async function until(condition: () => boolean, what: string): Promise<void> {
 
 const spec = () => file("spec/models/user_spec.rb");
 
+async function read(uri: vscode.Uri): Promise<string> {
+  return new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
+}
+
+/** Runs omoteura in the sample project, as the extension is set up to. */
+function omoteura(...args: string[]): string {
+  assert.ok(workspace);
+  const [program, ...base] = vscode.workspace.getConfiguration("omoteura").get<string[]>("command") ?? [];
+  assert.ok(program);
+  return execFileSync(program, [...base, ...args, "--root", workspace.fsPath], {
+    cwd: workspace.fsPath,
+    encoding: "utf8",
+  });
+}
+
+/** The drawing in a diagram file, as omoteura reads it. */
+function scene(uri: vscode.Uri): { elements: { id: string; x?: number; strokeColor?: string; link?: string }[] } {
+  return JSON.parse(omoteura("diagram", uri.fsPath)).scene;
+}
+
 describe("Omoteura", () => {
   before(async () => {
     const extension = vscode.extensions.getExtension<OmoteuraApi>("kaibyaku.omoteura");
@@ -237,6 +257,66 @@ describe("Omoteura", () => {
     assert.deepEqual(warnings, [
       "VS Code cannot find omoteura-missing-program. Start VS Code from a terminal so it sees your PATH, or set omoteura.command to a full path.",
     ]);
+  });
+
+  it("saves an edited Obsidian note in place, keeping the note and leaving test outlines out", async () => {
+    await vscode.workspace.fs.writeFile(
+      file("app/models/tag.rb"),
+      new TextEncoder().encode("class Tag\n  def name\n  end\nend\n"),
+    );
+    omoteura("draft", "app/models/tag.rb", "--format", "md");
+    const diagram = file("ura/app/models/tag.excalidraw.md");
+    const drafted = await read(diagram);
+    await vscode.workspace.fs.writeFile(
+      diagram,
+      new TextEncoder().encode(drafted.replace("# Excalidraw Data", "なぜタグを分けたか。\n\n# Excalidraw Data")),
+    );
+
+    await vscode.commands.executeCommand("vscode.openWith", diagram, "omoteura.diagram");
+    await until(() => api.diagram(diagram)?.renderedElements !== undefined, "the note");
+    const box = api.diagram(diagram)?.report?.shapes[0];
+    assert.ok(box);
+    const before = scene(diagram).elements.find((element) => element.id === box.id);
+    api.editDiagram(diagram, box.id, { x: 640 });
+    await until(() => api.diagram(diagram)?.dirty === true, "the change");
+
+    assert.equal((await vscode.workspace.save(diagram))?.toString(), diagram.toString());
+
+    assert.equal(api.diagram(diagram)?.dirty, false);
+    const saved = await read(diagram);
+    assert.match(saved, /なぜタグを分けたか。\n\n# Excalidraw Data\n/);
+    assert.match(saved, /```compressed-json\n/);
+    const after = scene(diagram).elements.find((element) => element.id === box.id);
+    assert.equal(after?.x, 640);
+    assert.equal(after?.strokeColor, before?.strokeColor);
+    assert.equal(after?.link, "omoteura:#name");
+  });
+
+  it("does not save over a change made elsewhere, and reverts to it", async () => {
+    await vscode.workspace.fs.writeFile(
+      file("app/models/badge.rb"),
+      new TextEncoder().encode("class Badge\n  def name\n  end\nend\n"),
+    );
+    omoteura("draft", "app/models/badge.rb");
+    const diagram = file("ura/app/models/badge.excalidraw");
+    await vscode.commands.executeCommand("vscode.openWith", diagram, "omoteura.diagram");
+    await until(() => api.diagram(diagram)?.renderedElements !== undefined, "the diagram");
+    const [box] = api.diagram(diagram)?.report?.shapes ?? [];
+    assert.ok(box);
+    api.editDiagram(diagram, box.id, { x: 640 });
+    await until(() => api.diagram(diagram)?.dirty === true, "the change");
+
+    const elsewhere = JSON.parse(await read(diagram));
+    elsewhere.elements = [];
+    await vscode.workspace.fs.writeFile(diagram, new TextEncoder().encode(JSON.stringify(elsewhere)));
+
+    await assert.rejects(Promise.resolve(vscode.workspace.save(diagram)), /changed on disk since it was opened/);
+    assert.deepEqual(JSON.parse(await read(diagram)).elements, []);
+    assert.equal(api.diagram(diagram)?.dirty, true);
+
+    await vscode.commands.executeCommand("workbench.action.files.revert");
+    await until(() => api.diagram(diagram)?.renderedElements === 0, "the reverted diagram");
+    assert.equal(api.diagram(diagram)?.dirty, false);
   });
 
   it("creates an empty diagram at the conventional path when asked", async () => {

@@ -7,8 +7,7 @@ Excalidraw drawing behind each Ruby file: diagrams, notes and the reasons
 behind the code, with shapes that link to the specs and methods they describe.
 This extension shows those links where you write code.
 
-> **Status:** pre-release. Drawings open read-only for now; edit them in
-> Obsidian or on excalidraw.com, and VS Code shows the changes as you save.
+> **Status:** pre-release.
 
 ## Features
 
@@ -20,10 +19,13 @@ This extension shows those links where you write code.
 - **Flip between code and diagram** with `⌥⌘U` (`Ctrl+Alt+U` on Windows and
   Linux) or the status bar item. In a file without a diagram, it offers to
   create an empty one where Omoteura looks for it.
-- **See the drawing in VS Code.** `.excalidraw` and Obsidian `.excalidraw.md`
-  files open in a viewer built on Excalidraw. Linked shapes are outlined in the
-  color of their test status, broken links dashed, without changing the file.
-  Clicking a shape's link opens the code it points to.
+- **Draw in VS Code.** `.excalidraw` and Obsidian `.excalidraw.md` files open
+  in Excalidraw. Linked shapes are outlined in the color of their test status,
+  broken links dashed; the outlines are never saved. Clicking a shape's link
+  opens the code it points to.
+- **Save in the file's own format.** An Obsidian note keeps your notes around
+  the drawing and stays compressed if it was. If the file changed elsewhere
+  since it opened, say in Obsidian, saving stops instead of overwriting it.
 - **Stays up to date** when you save, when RSpec writes new results or when a
   diagram changes.
 
