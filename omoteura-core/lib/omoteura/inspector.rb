@@ -19,7 +19,8 @@ module Omoteura
     def report(code_path)
       file = @config.expand(code_path) or raise ArgumentError, "#{code_path} is outside the project"
       relative = @config.relative(file)
-      data = {version: FORMAT_VERSION, code_path: relative, attachment: nil, shapes: [], error: nil}
+      data = {version: FORMAT_VERSION, code_path: relative, new_diagram_path: new_diagram_path(relative),
+              attachment: nil, shapes: [], error: nil}
 
       attachment = @resolver.resolve(relative) or return data
       data[:attachment] = {diagram_path: attachment.diagram_path, source: attachment.source.to_s, missing: attachment.missing?}
@@ -33,6 +34,12 @@ module Omoteura
     end
 
     private
+
+    # Where a new plain Excalidraw diagram for the file belongs by the path
+    # convention, so an editor can offer to create one.
+    def new_diagram_path(code_path)
+      File.join(@config.diagrams_dir, code_path.delete_suffix(File.extname(code_path)) + ".excalidraw")
+    end
 
     def shape(element, context_path)
       result = @link_resolver.resolve(element.link, context_path: context_path)

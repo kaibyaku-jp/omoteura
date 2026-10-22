@@ -52,7 +52,14 @@ RSpec.describe Omoteura::Inspector do
 
   it "reports a file without a diagram" do
     expect(report("spec/models/user_spec.rb"))
-      .to eq(version: 1, code_path: "spec/models/user_spec.rb", attachment: nil, shapes: [], error: nil)
+      .to eq(version: 1, code_path: "spec/models/user_spec.rb", new_diagram_path: "ura/spec/models/user_spec.excalidraw",
+        attachment: nil, shapes: [], error: nil)
+  end
+
+  it "places a new diagram under diagrams_dir" do
+    write(".omoteura.yml", "diagrams_dir: docs/ura\n")
+
+    expect(report("spec/models/user_spec.rb")[:new_diagram_path]).to eq("docs/ura/spec/models/user_spec.excalidraw")
   end
 
   it "reports linked shapes with their targets and test results" do
