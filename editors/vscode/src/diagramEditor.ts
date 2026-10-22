@@ -43,6 +43,8 @@ interface View extends DiagramViewState {
   document: DiagramDocument;
   panel: vscode.WebviewPanel;
   disposed: boolean;
+  /** Counts loads, so one overtaken by a later load is dropped. */
+  loads: number;
   /** The scene last loaded, as read and as shown with outlines, to take the outlines out on saving. */
   shown: { original: Scene; decorated: Scene } | undefined;
 }
@@ -103,6 +105,7 @@ export class DiagramEditorProvider implements vscode.CustomEditorProvider<Diagra
       dirty: false,
       shown: undefined,
       disposed: false,
+      loads: 0,
     };
     this.#views.add(view);
     panel.onDidDispose(() => {
@@ -224,8 +227,12 @@ export class DiagramEditorProvider implements vscode.CustomEditorProvider<Diagra
       this.#post(view, { type: "error", message: "Omoteura shows diagrams that are inside a workspace folder." });
       return;
     }
+    const load = ++view.loads;
     try {
       const report = await inspectDiagram(this.#command(document.uri), folder.uri.fsPath, document.uri.fsPath);
+      if (load !== view.loads) {
+        return;
+      }
       view.report = report;
       // Unsaved changes stay; the links and statuses still follow the file.
       if (view.dirty) {
@@ -246,6 +253,9 @@ export class DiagramEditorProvider implements vscode.CustomEditorProvider<Diagra
       view.renderedElements = undefined;
       this.#post(view, { type: "load", revision: view.revision, scene: decorated });
     } catch (error) {
+      if (load !== view.loads) {
+        return;
+      }
       const message = error instanceof InspectError || error instanceof Error ? error.message : String(error);
       this.#log.error(`Could not read ${vscode.workspace.asRelativePath(document.uri)}: ${message}`);
       this.#post(view, { type: "error", message: `Omoteura could not read this diagram: ${message}` });

@@ -66,6 +66,9 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
   // Each setup problem is announced once a session, not for every file.
   const announced = new Set<SetupProblem>();
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
+  // The latest inspection of each file; an older one that finishes later is stale.
+  const latest = new Map<string, number>();
+  let inspections = 0;
   const refreshed = new vscode.EventEmitter<vscode.Uri>();
 
   const decorations = new Map(
@@ -97,10 +100,19 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
       return;
     }
     const key = document.uri.toString();
+    const inspection = ++inspections;
+    latest.set(key, inspection);
     try {
-      reports.set(key, await inspect(commandFor(document.uri), folder.uri.fsPath, document.uri.fsPath));
+      const report = await inspect(commandFor(document.uri), folder.uri.fsPath, document.uri.fsPath);
+      if (latest.get(key) !== inspection) {
+        return;
+      }
+      reports.set(key, report);
       errors.delete(key);
     } catch (error) {
+      if (latest.get(key) !== inspection) {
+        return;
+      }
       const message = error instanceof InspectError || error instanceof Error ? error.message : String(error);
       reports.delete(key);
       errors.set(key, message);
@@ -324,6 +336,7 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     vscode.workspace.onDidCloseTextDocument((document) => {
       reports.delete(document.uri.toString());
       errors.delete(document.uri.toString());
+      latest.delete(document.uri.toString());
     }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("omoteura")) {
