@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Daily, to notice breakage from new releases of Ruby or dependencies.
+  schedule:
+    - cron: "17 21 * * *"
 
 permissions: {}
 
@@ -13,6 +16,7 @@ concurrency:
 
 jobs:
   test:
+    name: test (${{ matrix.ruby }}, ${{ matrix.gemfile }})${{ matrix.experimental && ' [experimental]' || '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -25,8 +29,15 @@ jobs:
           # The oldest rspec-core that omoteura-rspec supports.
           - ruby: "3.4"
             gemfile: gemfiles/rspec_3_12.gemfile
+          # An early warning only; a failure here does not fail the build.
+          - ruby: head
+            gemfile: gemfiles/latest.gemfile
+            experimental: true
+    continue-on-error: ${{ matrix.experimental == true }}
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+      # Precompiled native gems often do not declare support for ruby-head yet.
+      BUNDLE_FORCE_RUBY_PLATFORM: ${{ matrix.experimental == true }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
