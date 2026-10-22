@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import * as vscode from "vscode";
 import type { OmoteuraApi } from "../../src/extension.ts";
 
@@ -158,6 +159,34 @@ describe("Omoteura", () => {
 
     await vscode.commands.executeCommand("omoteura.flip");
     await until(() => activeTabUri() === spec().toString(), "the spec tab");
+  });
+
+  it("renders a diagram drafted by omoteura draft", async () => {
+    assert.ok(workspace);
+    await vscode.workspace.fs.writeFile(
+      file("app/models/comment.rb"),
+      new TextEncoder().encode("class Comment\n  def body\n  end\n\n  def author\n  end\nend\n"),
+    );
+    const [program, ...args] = vscode.workspace.getConfiguration("omoteura").get<string[]>("command") ?? [];
+    assert.ok(program);
+    execFileSync(program, [...args, "draft", "app/models/comment.rb", "--root", workspace.fsPath], {
+      cwd: workspace.fsPath,
+    });
+    const diagram = file("ura/app/models/comment.excalidraw");
+    const drafted = JSON.parse(new TextDecoder().decode(await vscode.workspace.fs.readFile(diagram)));
+
+    await vscode.commands.executeCommand("vscode.openWith", diagram, "omoteura.diagram");
+    await until(() => api.diagram(diagram)?.renderedElements !== undefined, "the drafted diagram");
+
+    assert.equal(api.diagram(diagram)?.renderedElements, drafted.elements.length);
+    assert.deepEqual(api.diagram(diagram)?.failures, []);
+    assert.deepEqual(
+      api.diagram(diagram)?.report?.shapes.map((shape) => [shape.link, shape.target?.start_line]),
+      [
+        ["omoteura:#body", 2],
+        ["omoteura:#author", 5],
+      ],
+    );
   });
 
   it("opens the code a shape links to and selects its lines", async () => {
