@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import type { Scene } from "./messages.ts";
 
-// The JSON printed by `omoteura inspect`, `omoteura diagram` and `omoteura save`, format version 1.
+// The JSON printed by `omoteura inspect`, `diagram`, `coverage` and `save`, format version 1.
 
 export type TestStatus = "passed" | "failed" | "pending";
 
@@ -52,6 +52,34 @@ export interface DiagramReport {
   scene: Scene | null;
   shapes: Shape[];
   error: string | null;
+}
+
+export interface CoveredExample {
+  path: string;
+  line: number;
+  description: string;
+  status: TestStatus | null;
+}
+
+export interface CoverageItem {
+  kind: "validations" | "associations" | "callbacks" | "scopes" | "enums" | "methods";
+  /** The declaration's first line, or the method's name. */
+  name: string;
+  start_line: number;
+  end_line: number;
+  covered: boolean;
+  /** Whether a method's body ran in the last test run; null when that cannot be told. */
+  executed: boolean | null;
+  examples: CoveredExample[];
+}
+
+export interface CoverageReport {
+  version: 1;
+  code_path: string;
+  /** False when .omoteura.yml turns the coverage panel off. */
+  enabled: boolean;
+  spec_paths: string[];
+  items: CoverageItem[];
 }
 
 export interface SaveResult {
@@ -123,6 +151,16 @@ export async function inspectDiagram(
   return parseDiagramReport(await runOmoteura(command, root, "diagram", file, run));
 }
 
+/** Asks omoteura which declarations and methods of one code file its specs cover. */
+export async function inspectCoverage(
+  command: readonly string[],
+  root: string,
+  file: string,
+  run: Runner = execRunner,
+): Promise<CoverageReport> {
+  return parseCoverageReport(await runOmoteura(command, root, "coverage", file, run));
+}
+
 /**
  * Saves a drawing, as Excalidraw serializes it, to file in the file's own
  * format. With ifUnchanged, the digest of the file as it was read, nothing
@@ -173,6 +211,14 @@ export function parseDiagramReport(output: string): DiagramReport {
     throw unsupported("diagram");
   }
   return data as unknown as DiagramReport;
+}
+
+export function parseCoverageReport(output: string): CoverageReport {
+  const data = parseJson(output, "coverage");
+  if (data.version !== 1 || !Array.isArray(data.items) || typeof data.enabled !== "boolean") {
+    throw unsupported("coverage");
+  }
+  return data as unknown as CoverageReport;
 }
 
 export function parseSaveResult(output: string): SaveResult {
