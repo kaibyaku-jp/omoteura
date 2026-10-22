@@ -1,6 +1,15 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+# Checked before loading anything else, so an editor that finds the system
+# Ruby gets a message it can act on. Not warn, which prints nothing when
+# warnings are off.
+require_relative "../lib/omoteura/minimum_ruby"
+if (message = Omoteura.ruby_too_old_message)
+  $stderr.puts message # standard:disable Style/StderrPuts
+  exit 2
+end
+
 require "omoteura/cli"
 
 exit Omoteura::CLI.new.run(ARGV)
