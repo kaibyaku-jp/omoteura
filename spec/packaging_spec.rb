@@ -36,7 +36,7 @@ RSpec.describe "Gem packaging" do
     end
   end
 
-  %w[omoteura-core omoteura-rails omoteura-rspec].each do |name|
+  %w[omoteura-core omoteura-rails omoteura-rspec editors/vscode].each do |name|
     it "keeps #{name}/LICENSE identical to the root LICENSE" do
       expect(File.read(File.join(root, name, "LICENSE"))).to eq(File.read(File.join(root, "LICENSE")))
     end
