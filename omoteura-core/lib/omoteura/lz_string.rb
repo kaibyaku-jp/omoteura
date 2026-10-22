@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Omoteura
-  # Decoder for lz-string's compressToBase64 format, which the Obsidian
-  # Excalidraw plugin uses for ```compressed-json blocks.
+  # lz-string's compressToBase64 format, which the Obsidian Excalidraw
+  # plugin uses for ```compressed-json blocks.
   # Port of https://github.com/pieroxy/lz-string (MIT).
   module LZString
     BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
@@ -11,6 +11,13 @@ module Omoteura
     WHITESPACE = " \t\r\n\f\v"
 
     module_function
+
+    # Compresses a UTF-8 string to the same output as lz-string's
+    # compressToBase64.
+    def compress_to_base64(input)
+      result = compress(input.encode(Encoding::UTF_16BE).unpack("n*"), 6)
+      result << "=" * ((4 - result.size % 4) % 4)
+    end
 
     # Returns the decompressed UTF-8 string, or nil if the input is corrupt.
     def decompress_from_base64(input)
@@ -82,6 +89,70 @@ module Omoteura
       nil
     end
 
+    # Phrases are dictionary codes rather than strings: a phrase extended by a
+    # code unit is looked up as (phrase << 16 | unit), so compressing
+    # allocates no string per phrase.
+    def compress(code_units, bits_per_char)
+      writer = BitWriter.new(bits_per_char)
+      singles = {}
+      phrases = {}
+      to_create = {}
+      dict_size = 3
+      enlarge_in = 2
+      num_bits = 2
+      w = nil
+      w_unit = nil
+
+      emit = lambda do
+        if w_unit && to_create.delete(w_unit)
+          if w_unit < 256
+            writer.write(0, num_bits)
+            writer.write(w_unit, 8)
+          else
+            writer.write(1, num_bits)
+            writer.write(w_unit, 16)
+          end
+          enlarge_in -= 1
+          if enlarge_in == 0
+            enlarge_in = 2**num_bits
+            num_bits += 1
+          end
+        else
+          writer.write(w, num_bits)
+        end
+        enlarge_in -= 1
+        if enlarge_in == 0
+          enlarge_in = 2**num_bits
+          num_bits += 1
+        end
+      end
+
+      code_units.each do |c|
+        unless singles.key?(c)
+          singles[c] = dict_size
+          dict_size += 1
+          to_create[c] = true
+        end
+
+        if w.nil?
+          w = singles[c]
+          w_unit = c
+        elsif (code = phrases[(w << 16) | c])
+          w = code
+          w_unit = nil
+        else
+          emit.call
+          phrases[(w << 16) | c] = dict_size
+          dict_size += 1
+          w = singles[c]
+          w_unit = c
+        end
+      end
+      emit.call if w
+      writer.write(2, num_bits)
+      writer.finish
+    end
+
     def unit(units, code)
       units[code] ||= [code].pack("n").freeze
     end
@@ -90,6 +161,41 @@ module Omoteura
     # so that extending an entry allocates only the result.
     def first_unit(units, entry)
       unit(units, (entry.getbyte(0) << 8) | entry.getbyte(1))
+    end
+
+    class BitWriter
+      def initialize(bits_per_char)
+        @bits_per_char = bits_per_char
+        @val = 0
+        @position = 0
+        @out = +""
+      end
+
+      # Writes the low count bits of value, lowest first.
+      def write(value, count)
+        count.times do
+          @val = (@val << 1) | (value & 1)
+          if @position == @bits_per_char - 1
+            @out << BASE64_ALPHABET.getbyte(@val)
+            @val = 0
+            @position = 0
+          else
+            @position += 1
+          end
+          value >>= 1
+        end
+      end
+
+      def finish
+        loop do
+          @val <<= 1
+          if @position == @bits_per_char - 1
+            @out << BASE64_ALPHABET.getbyte(@val)
+            return @out
+          end
+          @position += 1
+        end
+      end
     end
 
     class BitReader
