@@ -215,6 +215,15 @@ RSpec.describe Omoteura::CLI do
         .to eq([0, "skipped app/models/user.rb: ura/app/models/user.excalidraw already has a shape for everything\n", ""])
     end
 
+    it "prints the results as JSON with --json, for editors" do
+      status, out, err = run_cli("draft", "app/models/user.rb", "--root", root, "--json")
+
+      expect([status, err]).to eq([0, ""])
+      expect(JSON.parse(out)).to eq("version" => 1, "results" => [
+        {"code_path" => "app/models/user.rb", "diagram_path" => "ura/app/models/user.excalidraw", "shape_count" => 1, "status" => "written"}
+      ])
+    end
+
     it "exits 2 for --merge with --out" do
       status, _out, err = run_cli("draft", "app/models/user.rb", "--root", root, "--merge", "--out", "x")
 
