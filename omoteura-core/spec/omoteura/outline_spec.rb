@@ -10,6 +10,9 @@ RSpec.describe Omoteura::Outline do
   let(:model) do
     <<~RUBY
       class User < ApplicationRecord
+        def initialize(attributes = {})
+        end
+
         def display_name
         end
 
@@ -30,14 +33,14 @@ RSpec.describe Omoteura::Outline do
     RUBY
   end
 
-  it "groups declarations by kind, in a fixed order, then public methods" do
+  it "groups declarations by kind, in a fixed order, then public methods other than initialize" do
     expect(items(model)).to eq([
-      ["validations", "validates :email, presence: true", 6],
-      ["associations", "has_many :posts", 5],
-      ["callbacks", "after_commit :notify", 7],
-      ["scopes", "scope :active, -> { where(active: true) }", 8],
-      ["enums", "enum :role, { member: 0 }", 9],
-      ["methods", "display_name", 2]
+      ["validations", "validates :email, presence: true", 9],
+      ["associations", "has_many :posts", 8],
+      ["callbacks", "after_commit :notify", 10],
+      ["scopes", "scope :active, -> { where(active: true) }", 11],
+      ["enums", "enum :role, { member: 0 }", 12],
+      ["methods", "display_name", 5]
     ])
   end
 
