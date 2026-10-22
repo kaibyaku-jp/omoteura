@@ -15,20 +15,18 @@ module Omoteura
       end
     end
 
-    # Ruby files under these top-level directories are not project code.
-    IGNORED_DIRS = %w[vendor tmp log node_modules coverage pkg].freeze
-
     attr_reader :config
 
     def initialize(config)
       @config = config
+      @project = Project.new(config)
       @resolver = Resolver.new(config)
       @link_resolver = LinkResolver.new(config)
     end
 
     def run
       problems = []
-      attachments = code_paths.filter_map do |code_path|
+      attachments = @project.code_paths.filter_map do |code_path|
         @resolver.resolve(code_path)
       rescue MagicComment::Duplicate, Resolver::InvalidPath => e
         problems << Problem.new(file: code_path, message: e.message.delete_prefix("#{code_path} "), shape: nil)
@@ -58,21 +56,6 @@ module Omoteura
     end
 
     private
-
-    # Code files that can have a diagram: the project's Ruby files and any
-    # other existing file named in the attach setting. A convention diagram
-    # whose code file is gone is reported by #unattached_diagrams.
-    def code_paths
-      paths = ruby_files.to_set
-      paths.merge(config.attach.keys.select { |path| File.file?(File.join(config.root, path)) })
-      paths.sort
-    end
-
-    def ruby_files
-      Dir.glob("**/*.rb", base: config.root).reject do |path|
-        IGNORED_DIRS.include?(path.split("/", 2).first) || path.start_with?("#{config.diagrams_dir}/")
-      end
-    end
 
     def load_diagram(diagram_path, problems)
       Diagram.load(File.join(config.root, diagram_path))
