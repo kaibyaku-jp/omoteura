@@ -25,6 +25,8 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   yet, beside what is drawn, and `--json` prints the results for editors.
 - Write Obsidian Excalidraw notes as the plugin does, keeping what the user
   wrote above the drawing, and read links edited under its Element Links.
+- `omoteura links`, which lists the places in a code file a shape can link
+  to, each with a link that resolves to exactly that place.
 - `omoteura coverage`, which lists a file's declarations and public methods
   and the examples that name them, for the editor's coverage panel;
   `coverage_panel: false` turns it off.

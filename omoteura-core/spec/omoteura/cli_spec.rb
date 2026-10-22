@@ -149,6 +149,17 @@ RSpec.describe Omoteura::CLI do
     end
   end
 
+  describe "links" do
+    it "prints the places in a code file a shape can link to" do
+      status, out, err = run_cli("links", File.join(root, "app/models/user.rb"), "--root", root)
+
+      expect([status, err]).to eq([0, ""])
+      expect(JSON.parse(out)).to eq("version" => 1, "code_path" => "app/models/user.rb", "candidates" => [
+        {"link" => "omoteura:#display_name", "label" => "display_name", "kind" => "methods", "line" => 2}
+      ])
+    end
+  end
+
   describe "diagram" do
     it "prints the editor data for a diagram as JSON" do
       write("ura/app/models/user.excalidraw", drawing_with_link("omoteura:#display_name"))

@@ -17,6 +17,7 @@ module Omoteura
         inspect   Print what an editor needs about one code file, as JSON
         diagram   Print what an editor needs to show one diagram, as JSON
         coverage  Print which declarations and methods of one file its specs cover, as JSON
+        links     Print the places in one code file a shape can link to, as JSON
         draft     Draft a diagram from code, as a starting point to draw on
         save      Save a drawing an editor changed, read as JSON from stdin
         version   Print the version
@@ -37,6 +38,11 @@ module Omoteura
       when "inspect" then editor_report(args, "inspect FILE") { |config, results, file| Inspector.new(config, results: results).report(file) }
       when "diagram" then editor_report(args, "diagram FILE") { |config, results, file| Inspector.new(config, results: results).diagram_report(file) }
       when "coverage" then editor_report(args, "coverage FILE") { |config, results, file| CoverageReport.new(config, results: results).report(file) }
+      when "links"
+        editor_report(args, "links FILE") do |config, _results, file|
+          code_path = config.relative(file)
+          {version: Inspector::FORMAT_VERSION, code_path: code_path, candidates: LinkCandidates.new(config).for(code_path).map(&:to_h)}
+        end
       when "draft" then draft(args)
       when "save" then save(args)
       when "version", "--version", "-v"
