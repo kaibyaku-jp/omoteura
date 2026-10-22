@@ -88,7 +88,13 @@ module Omoteura
     def initialize(path:, format:, data:)
       @path = path
       @format = format
+      @data = data
       @elements = build_elements(data["elements"])
+    end
+
+    # The drawing as Excalidraw itself reads it, for showing it in an editor.
+    def scene
+      {"elements" => @data["elements"], "appState" => @data["appState"] || {}, "files" => @data["files"] || {}}
     end
 
     def linked_elements

@@ -105,6 +105,54 @@ RSpec.describe Omoteura::Inspector do
     expect(report(File.join(root, "spec/models/user_spec.rb"))[:code_path]).to eq("spec/models/user_spec.rb")
   end
 
+  describe "#diagram_report" do
+    before do
+      write("ura/spec/models/user_spec.excalidraw", drawing(["name", "omoteura:#requires a name"], ["memo", nil]))
+    end
+
+    it "reports the scene, the code attached to it and its linked shapes" do
+      data = described_class.new(Omoteura::Config.load(root), results: results([3, "failed"]))
+        .diagram_report("ura/spec/models/user_spec.excalidraw")
+
+      expect(data.slice(:version, :diagram_path, :attached_to, :error)).to eq(
+        version: 1, diagram_path: "ura/spec/models/user_spec.excalidraw", attached_to: ["spec/models/user_spec.rb"], error: nil
+      )
+      expect(data[:scene]["elements"].map { |e| e["id"] }).to eq(%w[name memo])
+      expect(data[:shapes].map { |s| [s[:id], s[:target], s[:test][:status]] }).to eq([
+        ["name", {path: "spec/models/user_spec.rb", start_line: 3, end_line: 4}, "failed"]
+      ])
+    end
+
+    it "lists every file a shared diagram is attached to and resolves against the first" do
+      write("ura/shared/user.excalidraw", drawing(["name", "omoteura:#requires a name"]))
+      write("spec/models/admin_spec.rb", "# omoteura: ura/shared/user.excalidraw\nRSpec.describe Admin do\nend\n")
+      write("spec/models/user_spec.rb", "# omoteura: ura/shared/user.excalidraw\n" + File.read(File.join(root, "spec/models/user_spec.rb")))
+
+      data = described_class.new(Omoteura::Config.load(root)).diagram_report("ura/shared/user.excalidraw")
+
+      expect(data[:attached_to]).to eq(["spec/models/admin_spec.rb", "spec/models/user_spec.rb"])
+      expect(data[:shapes].first[:error]).to eq("omoteura:#requires a name matches nothing in spec/models/admin_spec.rb")
+    end
+
+    it "reports links without a path as broken when no code is attached" do
+      write("ura/orphan.excalidraw", drawing(["x", "omoteura:#anything"]))
+
+      data = described_class.new(Omoteura::Config.load(root)).diagram_report("ura/orphan.excalidraw")
+
+      expect(data[:attached_to]).to eq([])
+      expect(data[:shapes].first[:error]).to eq("omoteura:#anything has no file and the diagram is not attached to one")
+    end
+
+    it "reports an unreadable diagram as an error" do
+      write("ura/broken.excalidraw", "{")
+
+      data = described_class.new(Omoteura::Config.load(root)).diagram_report("ura/broken.excalidraw")
+
+      expect(data[:scene]).to be_nil
+      expect(data[:error]).to start_with("ura/broken.excalidraw has invalid drawing JSON")
+    end
+  end
+
   it "refuses a file outside the project" do
     expect { report("../elsewhere.rb") }.to raise_error(ArgumentError, "../elsewhere.rb is outside the project")
   end

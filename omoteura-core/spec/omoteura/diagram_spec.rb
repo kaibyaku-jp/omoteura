@@ -24,6 +24,12 @@ RSpec.describe Omoteura::Diagram do
       expect(diagram.elements.find { |e| e.id == "email-unique" }.label).to eq("email 一意 🔑")
     end
 
+    it "keeps the whole scene, deleted elements included, for showing the drawing" do
+      expect(diagram.scene.keys).to eq(%w[elements appState files])
+      expect(diagram.scene["elements"].map { |e| e["id"] }).to include("removed")
+      expect(diagram.scene["appState"]).to eq("viewBackgroundColor" => "#ffffff")
+    end
+
     it "returns only elements with omoteura: links as linked elements" do
       expect(diagram.linked_elements.map { |e| [e.id, e.link] })
         .to eq([["email-unique", "omoteura:#email 一意であること"]])

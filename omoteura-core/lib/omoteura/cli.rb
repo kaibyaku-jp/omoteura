@@ -14,6 +14,7 @@ module Omoteura
       Commands:
         check     Report broken omoteura: links and diagrams not attached to code
         inspect   Print what an editor needs about one code file, as JSON
+        diagram   Print what an editor needs to show one diagram, as JSON
         version   Print the version
 
       Run "omoteura <command> --help" for a command's options.
@@ -28,7 +29,8 @@ module Omoteura
       command, *args = argv
       case command
       when "check" then check(args)
-      when "inspect" then inspect_file(args)
+      when "inspect" then editor_report(args, "inspect FILE") { |inspector, file| inspector.report(file) }
+      when "diagram" then editor_report(args, "diagram FILE") { |inspector, file| inspector.diagram_report(file) }
       when "version", "--version", "-v"
         @out.puts VERSION
         0
@@ -68,10 +70,11 @@ module Omoteura
       2
     end
 
-    def inspect_file(args)
+    # The commands editors run: one file in, one line of JSON out.
+    def editor_report(args, usage)
       options = {root: Dir.pwd, results: TestResults::DEFAULT_PATH}
       parser = OptionParser.new do |o|
-        o.banner = "Usage: omoteura inspect FILE [options]"
+        o.banner = "Usage: omoteura #{usage} [options]"
         o.on("--root DIR", "Project root (default: the current directory)") { |dir| options[:root] = dir }
         o.on("--results PATH", "Test results, relative to the root (default: #{TestResults::DEFAULT_PATH})") { |path| options[:results] = path }
         o.on("-h", "--help", "Show this help") do
@@ -88,7 +91,7 @@ module Omoteura
       raise OptionParser::InvalidArgument, "#{args.first} is outside #{config.root}" unless config.expand(file)
 
       results = TestResults.load(File.expand_path(options[:results], config.root))
-      @out.puts JSON.generate(Inspector.new(config, results: results).report(file))
+      @out.puts JSON.generate(yield(Inspector.new(config, results: results), file))
       0
     rescue OptionParser::ParseError, Config::Invalid, TestResults::Invalid => e
       @err.puts "omoteura: #{e.message}"
