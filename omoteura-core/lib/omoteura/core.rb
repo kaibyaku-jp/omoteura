@@ -8,6 +8,7 @@ end
 
 require "omoteura/checker"
 require "omoteura/config"
+require "omoteura/coverage_report"
 require "omoteura/diagram"
 require "omoteura/draft"
 require "omoteura/inspector"

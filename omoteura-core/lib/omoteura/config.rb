@@ -11,7 +11,8 @@ module Omoteura
     FILE_NAMES = %w[.omoteura.yml .omoteura.local.yml].freeze
     DEFAULT_DIAGRAMS_DIR = "ura"
 
-    attr_reader :root, :diagrams_dir, :attach
+    # coverage_panel is false to turn the editor's coverage panel off.
+    attr_reader :root, :diagrams_dir, :attach, :coverage_panel
 
     def self.load(root)
       root = File.expand_path(root)
@@ -35,6 +36,7 @@ module Omoteura
     # rather than replacing the whole attach mapping.
     def self.merge_settings(merged, settings)
       merged[:diagrams_dir] = settings["diagrams_dir"] if settings.key?("diagrams_dir")
+      merged[:coverage_panel] = settings["coverage_panel"] if settings.key?("coverage_panel")
       return unless settings.key?("attach")
 
       attach = settings["attach"]
@@ -43,11 +45,14 @@ module Omoteura
     end
     private_class_method :read_settings, :merge_settings
 
-    def initialize(root:, diagrams_dir: DEFAULT_DIAGRAMS_DIR, attach: {})
+    def initialize(root:, diagrams_dir: DEFAULT_DIAGRAMS_DIR, attach: {}, coverage_panel: true)
       @root = File.expand_path(root)
       @root_prefix = (@root + File::SEPARATOR).freeze
       @diagrams_dir = validate_relative_path(diagrams_dir, "diagrams_dir")
       @attach = validate_attach(attach).freeze
+      raise Invalid, "coverage_panel must be true or false, got #{coverage_panel.inspect}" unless [true, false].include?(coverage_panel)
+
+      @coverage_panel = coverage_panel
     end
 
     # Expands a path written relative to the project root. Returns nil when

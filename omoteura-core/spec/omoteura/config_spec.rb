@@ -84,6 +84,20 @@ RSpec.describe Omoteura::Config do
       expect { described_class.load(root) }.to raise_error(described_class::Invalid, /diagrams_dir must be a relative path/)
     end
 
+    it "turns the coverage panel on unless a file turns it off" do
+      expect(described_class.load(root).coverage_panel).to be(true)
+
+      write(".omoteura.local.yml", "coverage_panel: false\n")
+
+      expect(described_class.load(root).coverage_panel).to be(false)
+    end
+
+    it "rejects a coverage_panel that is not true or false" do
+      write(".omoteura.yml", "coverage_panel: no thanks\n")
+
+      expect { described_class.load(root) }.to raise_error(described_class::Invalid, /coverage_panel must be true or false/)
+    end
+
     it "rejects attach that is not a mapping" do
       write(".omoteura.yml", "attach: ura/user.excalidraw.md\n")
 

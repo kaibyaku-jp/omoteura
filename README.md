@@ -209,6 +209,7 @@ opened is never overwritten.
 | `omoteura draft FILE...` | Draft a diagram from code, as a starting point to draw on |
 | `omoteura inspect FILE` | Print one file's diagram, links and test results as JSON, for editors |
 | `omoteura diagram FILE` | Print one diagram's drawing, links and test results as JSON, for editors |
+| `omoteura coverage FILE` | Print which declarations and public methods of one file its specs cover, as JSON, for editors |
 | `omoteura save FILE` | Save a drawing an editor changed, read as JSON from stdin, in the file's format |
 | `omoteura version` | Print the version |
 
@@ -223,6 +224,7 @@ Run `omoteura <command> --help` for options.
 | --- | --- | --- |
 | `diagrams_dir` | `ura` | Where diagrams live, relative to the root |
 | `attach` | none | Code paths mapped to diagram paths |
+| `coverage_panel` | `true` | `false` turns off the editor's list of tested and untested declarations and methods |
 
 `.omoteura.local.yml` is read on top of it, entry by entry, for settings of
 your own. Keep it out of version control.

@@ -22,6 +22,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   an existing diagram.
 - Write Obsidian Excalidraw notes as the plugin does, keeping what the user
   wrote above the drawing, and read links edited under its Element Links.
+- `omoteura coverage`, which lists a file's declarations and public methods
+  and the examples that name them, for the editor's coverage panel;
+  `coverage_panel: false` turns it off.
 - `omoteura save` for editors to save a changed drawing in the file's own
   format, in one step and never over a change made elsewhere since.
 - A clear message, instead of a crash, on Ruby older than 3.4.
