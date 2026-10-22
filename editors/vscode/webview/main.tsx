@@ -47,7 +47,24 @@ function signature(api: ExcalidrawImperativeAPI): string {
 
 // The drawing as last loaded or saved, and whether the host was told it
 // changed since. A webview shows one drawing.
-const changes: { clean: string | undefined; reported: boolean } = { clean: undefined, reported: false };
+// Excalidraw also changes a drawing by itself after loading it, measuring
+// text again once its fonts load; such a change is taken into the clean
+// state until the user has pointed, typed, pasted or dropped something.
+const changes: { clean: string | undefined; reported: boolean; userActed: boolean } = {
+  clean: undefined,
+  reported: false,
+  userActed: false,
+};
+
+for (const type of ["pointerdown", "keydown", "paste", "drop"]) {
+  window.addEventListener(
+    type,
+    () => {
+      changes.userActed = true;
+    },
+    { capture: true },
+  );
+}
 
 function markClean(clean: string): void {
   changes.clean = clean;
@@ -55,10 +72,19 @@ function markClean(clean: string): void {
 }
 
 function reportChange(api: ExcalidrawImperativeAPI): void {
-  if (changes.clean !== undefined && !changes.reported && signature(api) !== changes.clean) {
-    changes.reported = true;
-    vscode.postMessage({ type: "changed" });
+  if (changes.clean === undefined || changes.reported) {
+    return;
   }
+  const current = signature(api);
+  if (current === changes.clean) {
+    return;
+  }
+  if (!changes.userActed) {
+    changes.clean = current;
+    return;
+  }
+  changes.reported = true;
+  vscode.postMessage({ type: "changed" });
 }
 
 // VS Code saves and opens files, so Excalidraw's own file actions are off
@@ -144,6 +170,7 @@ function App() {
           }
           break;
         case "edit":
+          changes.userActed = true;
           current?.updateScene({
             elements: current
               .getSceneElementsIncludingDeleted()
@@ -180,6 +207,7 @@ function App() {
       captureUpdate: CaptureUpdateAction.NEVER,
     });
     markClean(signature(api));
+    changes.userActed = false;
     if (revision === 1) {
       api.scrollToContent(undefined, { fitToViewport: true });
     }

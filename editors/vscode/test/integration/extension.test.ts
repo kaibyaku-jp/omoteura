@@ -200,6 +200,9 @@ describe("Omoteura", () => {
 
     assert.equal(api.diagram(diagram)?.renderedElements, drafted.elements.length);
     assert.deepEqual(api.diagram(diagram)?.failures, []);
+    // Excalidraw measures text again once its fonts load; that alone must not make the diagram unsaved.
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    assert.equal(api.diagram(diagram)?.dirty, false);
     assert.deepEqual(
       api.diagram(diagram)?.report?.shapes.map((shape) => [shape.link, shape.target?.start_line]),
       [
