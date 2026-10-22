@@ -277,6 +277,7 @@ describe("Omoteura", () => {
     const box = api.diagram(diagram)?.report?.shapes[0];
     assert.ok(box);
     const before = scene(diagram).elements.find((element) => element.id === box.id);
+    assert.ok(before, `${box.id}, the first linked shape the view reported, is not in the file`);
     api.editDiagram(diagram, box.id, { x: 640 });
     await until(() => api.diagram(diagram)?.dirty === true, "the change");
 
@@ -286,7 +287,10 @@ describe("Omoteura", () => {
     const saved = await read(diagram);
     assert.match(saved, /なぜタグを分けたか。\n\n# Excalidraw Data\n/);
     assert.match(saved, /```compressed-json\n/);
-    const after = scene(diagram).elements.find((element) => element.id === box.id);
+    const elements = scene(diagram).elements;
+    const after = elements.find((element) => element.id === box.id);
+    // This failed once on CI with the element missing; say what was saved if it does again.
+    assert.ok(after, `${box.id} is not among the saved elements ${JSON.stringify(elements.map((e) => [e.id, e.x]))}`);
     assert.equal(after?.x, 640);
     assert.equal(after?.strokeColor, before?.strokeColor);
     assert.equal(after?.link, "omoteura:#name");
