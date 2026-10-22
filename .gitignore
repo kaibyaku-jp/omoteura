@@ -1,9 +1,10 @@
 /.bundle/
 /vendor/bundle/
+/.gem/
+/.direnv/
 /pkg/
 /tmp/
 /coverage/
 *.gem
-Gemfile.lock
 .rspec_status
 .omoteura.local.yml

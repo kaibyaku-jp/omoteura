@@ -9,3 +9,4 @@ gemspec path: "omoteura-rspec"
 
 gem "rake"
 gem "rspec", "~> 3.12"
+gem "standard", "~> 1.50"
