@@ -1,0 +1,30 @@
+[
+  {
+    "plain": "",
+    "compressed": "Q==="
+  },
+  {
+    "plain": "a",
+    "compressed": "IZA="
+  },
+  {
+    "plain": "Hello, world",
+    "compressed": "BIUwNmD2A0AEDukBOYAmQ==="
+  },
+  {
+    "plain": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "compressed": "IY18ZXaQ"
+  },
+  {
+    "plain": "表と裏 ⇄ omote/ura",
+    "compressed": "hYRgsGTzEQBII4QQ9gtrALgUwPQFcBOBDIA="
+  },
+  {
+    "plain": "emoji 🔑🧪 and surrogates",
+    "compressed": "KYWw9gVglgBIvBuERdwfBuCvdmBDAdgExgZwFcAnIsAc3QBdg8g="
+  },
+  {
+    "plain": "{\n  \"type\": \"excalidraw\",\n  \"version\": 2,\n  \"source\": \"https://excalidraw.com\",\n  \"elements\": [\n    {\n      \"id\": \"user-box\",\n      \"type\": \"rectangle\",\n      \"isDeleted\": false,\n      \"link\": null,\n      \"boundElements\": [\n        {\n          \"type\": \"text\",\n          \"id\": \"user-label\"\n        }\n      ]\n    },\n    {\n      \"id\": \"user-label\",\n      \"type\": \"text\",\n      \"isDeleted\": false,\n      \"link\": null,\n      \"text\": \"User\",\n      \"originalText\": \"User\",\n      \"containerId\": \"user-box\"\n    },\n    {\n      \"id\": \"email-unique\",\n      \"type\": \"rectangle\",\n      \"isDeleted\": false,\n      \"link\": \"omoteura:#email 一意であること\",\n      \"boundElements\": [\n        {\n          \"type\": \"text\",\n          \"id\": \"email-label\"\n        }\n      ]\n    },\n    {\n      \"id\": \"email-label\",\n      \"type\": \"text\",\n      \"isDeleted\": false,\n      \"link\": null,\n      \"text\": \"email 一意 🔑\",\n      \"originalText\": \"email 一意 🔑\",\n      \"containerId\": \"email-unique\"\n    },\n    {\n      \"id\": \"memo\",\n      \"type\": \"text\",\n      \"isDeleted\": false,\n      \"link\": null,\n      \"text\": \"DB の unique index も確認\",\n      \"originalText\": \"DB の unique index も確認\",\n      \"containerId\": null\n    },\n    {\n      \"id\": \"docs\",\n      \"type\": \"rectangle\",\n      \"isDeleted\": false,\n      \"link\": \"https://example.com/docs\",\n      \"boundElements\": null\n    },\n    {\n      \"id\": \"removed\",\n      \"type\": \"rectangle\",\n      \"isDeleted\": true,\n      \"link\": \"omoteura:#削除済み\",\n      \"boundElements\": null\n    }\n  ],\n  \"appState\": {\n    \"viewBackgroundColor\": \"#ffffff\"\n  },\n  \"files\": {}\n}",
+    "compressed": "N4KABGBEAuCeAOBTSAuKiAeBjAhgGwEsATAJxwHdIAacKAN0RIGcCB7AO1TACYaJImrAK4ksyNJAAW0aPCYoA9Asy5CpCgDosrALbVakRHkQ7E7aEy4BtWhFAQHUYl0hCmjALQAjVhn2P+OCQXEkQsaBx2AHNjfwDIAiYAESNEaEQiLgAzfHc+eMJ2AGsudiE8PHzHSB8hdiIAUWNTc0s0GwCHe06HGARxKHSMaDiep0yJN088HC8jSFsAgF9FiABdRaWqsG7q50n3Eg8ZubxR3qCBmEwR7f5ElON0ibAcvDzVqEKStDKKu8GNxcAFVDud+KwSAQogR2PgACpAiSgxjgqDacw4WGMACSL1ch28vgWji2i12vX26B0WLwHjqBAAjkJkAC+sEJKFwpEYqzPglkqlntlcog2d8XLpWOkRDgUABiEy0sCAADlAPCGgHMGQBCDIBohkAygyACwY0TVhPUmiYzBZrJ87DaLv0XENbnb7vilQQ6Sd5naVp0NqTthTXS53Z7ZvM2ZdHUC2Q8hRkRe8xfyJb9ypV+U6QzSPaq1WBALwbgERd42Q6GwhFI6nK9WFktsjERbEkPHZ2n09hMlkkhxkxxB8YuUw6VjGqMSLOxwVPBNoN4fTqQVNgP4ZxdZiRJABCYEAdgxgBnMxBgWFETBgQBBDIAuj0AsVGlqEwuF4RHDFzbvcHztHk/1c/Xu8NhwTbsLiLyrpsgb8lSkBEKwWCWJGDqcmEETRLEU6PGks6vKK4qwj8UDSLI8hKJgOA6PAxhaLoCiwfBxq1GazSWm0K7phB5JQfioQjgwmSIRyUBcqhvLGnGM4vNAJAsnhxSSiOMpkAqgBSSoAJmmABB2gD+DAxpqNMxrSlOxpK0Gs+SQDg8DwAAyhE6RcBSkB0AQiDkFuOBYEUUQkLpADCrB4JCLjylkIWhT2fZQFkHqIKxwArEsQA="
+  }
+]
