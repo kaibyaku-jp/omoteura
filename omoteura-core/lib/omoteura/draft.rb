@@ -3,6 +3,7 @@
 require "fileutils"
 require "json"
 require "omoteura/draft/scene_builder"
+require "omoteura/outline"
 
 module Omoteura
   # Drafts a diagram from a code file: for a spec, a column per example
@@ -15,14 +16,7 @@ module Omoteura
   # beside it as <name>.draft.excalidraw, or .draft.excalidraw.md when
   # drafting for Obsidian.
   class Draft
-    CATEGORIES = %w[validations associations callbacks scopes enums methods].freeze
-    DECLARATIONS = {
-      "validations" => /\A(?:validates?|validates_\w+)\b/,
-      "associations" => /\A(?:has_many|has_one|belongs_to|has_and_belongs_to_many)\b/,
-      "callbacks" => /\A(?:before|after|around)_\w+\b/,
-      "scopes" => /\Ascope\b/,
-      "enums" => /\Aenum\b/
-    }.freeze
+    CATEGORIES = Outline::KINDS
     FORMAT_SOURCE = "https://github.com/kaibyaku-jp/omoteura"
     EXTENSIONS = {excalidraw: ".excalidraw", obsidian: ".excalidraw.md"}.freeze
 
@@ -112,35 +106,18 @@ module Omoteura
     end
 
     def code_columns(index, code_path)
-      columns = DECLARATIONS.filter_map do |category, pattern|
-        next unless @only.include?(category)
-
-        boxes = index.statement_entries.select { |e| e.name.match?(pattern) }.map do |entry|
-          prefix = entry.name[/\A\S+\s+[^,(\s]+/]
-          SceneBuilder::Box.new(label: entry.name.delete_suffix(","), link: verified_link(["omoteura:##{prefix}", "omoteura:##{entry.name}"].uniq, entry, code_path))
+      Outline.new(index).items(only: @only).chunk_while { |a, b| a.kind == b.kind }.map do |items|
+        kind = items.first.kind
+        boxes = items.map do |item|
+          entry = item.entry
+          if kind == "methods"
+            SceneBuilder::Box.new(label: entry.name, link: verified_link(["omoteura:##{entry.name}"], entry, code_path))
+          else
+            prefix = entry.name[/\A\S+\s+[^,(\s]+/]
+            SceneBuilder::Box.new(label: entry.name.delete_suffix(","), link: verified_link(["omoteura:##{prefix}", "omoteura:##{entry.name}"].uniq, entry, code_path))
+          end
         end
-        SceneBuilder::Column.new(heading: SceneBuilder::Heading.new(text: category.capitalize, link: nil), items: boxes) unless boxes.empty?
-      end
-      if @only.include?("methods")
-        methods = public_methods(index).map do |entry|
-          SceneBuilder::Box.new(label: entry.name, link: verified_link(["omoteura:##{entry.name}"], entry, code_path))
-        end
-        columns << SceneBuilder::Column.new(heading: SceneBuilder::Heading.new(text: "Methods", link: nil), items: methods) unless methods.empty?
-      end
-      columns
-    end
-
-    # Methods after a bare private or protected in the same class, or
-    # defined with private def, are left out.
-    def public_methods(index)
-      statements = index.statement_entries
-      classes = statements.select { |e| e.name.match?(/\A(?:class|module)\b/) }
-      hidden_from = statements.select { |e| %w[private protected].include?(e.name) }
-      hidden_names = statements.filter_map { |e| e.name[/\A(?:private|protected)\s+def\s+(?:self\.)?(\w+[?!=]?)/, 1] }
-      index.method_entries.reject do |method|
-        owner = classes.select { |c| c.start_line < method.start_line && c.end_line >= method.end_line }.max_by(&:start_line)
-        hidden_names.include?(method.name.delete_prefix("self.")) ||
-          hidden_from.any? { |h| h.start_line < method.start_line && (!owner || (h.start_line > owner.start_line && h.end_line <= owner.end_line)) }
+        SceneBuilder::Column.new(heading: SceneBuilder::Heading.new(text: kind.capitalize, link: nil), items: boxes)
       end
     end
 
