@@ -93,6 +93,51 @@ RSpec.describe Omoteura::CLI do
     end
   end
 
+  describe "inspect" do
+    it "prints the editor data for a file as JSON" do
+      write("ura/app/models/user.excalidraw", drawing_with_link("omoteura:#display_name"))
+      write("tmp/omoteura/results.json", JSON.generate(version: 1, examples: []))
+
+      status, out, err = run_cli("inspect", File.join(root, "app/models/user.rb"), "--root", root)
+      data = JSON.parse(out)
+
+      expect([status, err]).to eq([0, ""])
+      expect(data["attachment"]["diagram_path"]).to eq("ura/app/models/user.excalidraw")
+      expect(data["shapes"].first["target"]).to eq("path" => "app/models/user.rb", "start_line" => 2, "end_line" => 3)
+    end
+
+    it "exits 2 without exactly one file" do
+      expect(run_cli("inspect", "--root", root)).to eq([2, "", "omoteura: invalid argument: expected exactly one FILE\n"])
+    end
+
+    it "exits 2 for a file that does not exist" do
+      status, _out, err = run_cli("inspect", File.join(root, "app/models/post.rb"), "--root", root)
+
+      expect(status).to eq(2)
+      expect(err).to end_with("app/models/post.rb is not a file\n")
+    end
+
+    it "exits 2 for a file outside the root" do
+      Dir.mktmpdir do |elsewhere|
+        File.write(File.join(elsewhere, "x.rb"), "")
+
+        status, _out, err = run_cli("inspect", File.join(elsewhere, "x.rb"), "--root", root)
+
+        expect(status).to eq(2)
+        expect(err).to include("is outside #{root}")
+      end
+    end
+
+    it "exits 2 for a results file it cannot read" do
+      write("tmp/omoteura/results.json", "{")
+
+      status, _out, err = run_cli("inspect", File.join(root, "app/models/user.rb"), "--root", root)
+
+      expect(status).to eq(2)
+      expect(err).to include("is not valid JSON")
+    end
+  end
+
   it "prints the version" do
     expect(run_cli("version")).to eq([0, "#{Omoteura::VERSION}\n", ""])
   end

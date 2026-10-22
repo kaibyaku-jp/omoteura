@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "json"
 require "optparse"
 require "omoteura/core"
 
@@ -12,6 +13,7 @@ module Omoteura
 
       Commands:
         check     Report broken omoteura: links and diagrams not attached to code
+        inspect   Print what an editor needs about one code file, as JSON
         version   Print the version
 
       Run "omoteura <command> --help" for a command's options.
@@ -26,6 +28,7 @@ module Omoteura
       command, *args = argv
       case command
       when "check" then check(args)
+      when "inspect" then inspect_file(args)
       when "version", "--version", "-v"
         @out.puts VERSION
         0
@@ -61,6 +64,33 @@ module Omoteura
       @out.puts summary(report)
       report.ok? ? 0 : 1
     rescue OptionParser::ParseError, Config::Invalid => e
+      @err.puts "omoteura: #{e.message}"
+      2
+    end
+
+    def inspect_file(args)
+      options = {root: Dir.pwd, results: TestResults::DEFAULT_PATH}
+      parser = OptionParser.new do |o|
+        o.banner = "Usage: omoteura inspect FILE [options]"
+        o.on("--root DIR", "Project root (default: the current directory)") { |dir| options[:root] = dir }
+        o.on("--results PATH", "Test results, relative to the root (default: #{TestResults::DEFAULT_PATH})") { |path| options[:results] = path }
+        o.on("-h", "--help", "Show this help") do
+          @out.puts o
+          return 0
+        end
+      end
+      parser.parse!(args)
+      raise OptionParser::InvalidArgument, "expected exactly one FILE" unless args.size == 1
+
+      config = Config.load(options[:root])
+      file = File.expand_path(args.first)
+      raise OptionParser::InvalidArgument, "#{args.first} is not a file" unless File.file?(file)
+      raise OptionParser::InvalidArgument, "#{args.first} is outside #{config.root}" unless config.expand(file)
+
+      results = TestResults.load(File.expand_path(options[:results], config.root))
+      @out.puts JSON.generate(Inspector.new(config, results: results).report(file))
+      0
+    rescue OptionParser::ParseError, Config::Invalid, TestResults::Invalid => e
       @err.puts "omoteura: #{e.message}"
       2
     end
