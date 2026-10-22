@@ -6,6 +6,8 @@ require_relative "omoteura-core/lib/omoteura/core/version"
 
 RSpec::Core::RakeTask.new(:spec) do |t|
   t.pattern = "{spec,omoteura-*/spec}/**/*_spec.rb"
+  # Specs inside fixture projects are run by the integration specs, in their own process.
+  t.exclude_pattern = "spec/fixtures/**/*_spec.rb"
 end
 
 task default: %i[spec standard]

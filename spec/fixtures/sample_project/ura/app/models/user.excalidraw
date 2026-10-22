@@ -1,0 +1,13 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {"id": "valid", "type": "rectangle", "isDeleted": false, "link": "omoteura:#valid?", "boundElements": [{"type": "text", "id": "valid-label"}]},
+    {"id": "valid-label", "type": "text", "isDeleted": false, "link": null, "text": "email が必須", "originalText": "email が必須", "containerId": "valid"},
+    {"id": "name", "type": "rectangle", "isDeleted": false, "link": "omoteura:#display_name", "boundElements": [{"type": "text", "id": "name-label"}]},
+    {"id": "name-label", "type": "text", "isDeleted": false, "link": null, "text": "表示名", "originalText": "表示名", "containerId": "name"}
+  ],
+  "appState": {"viewBackgroundColor": "#ffffff"},
+  "files": {}
+}
