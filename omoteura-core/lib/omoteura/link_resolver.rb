@@ -21,6 +21,7 @@ module Omoteura
     end
 
     IDENTIFIER_CHAR = /[[:alnum:]_?!]/
+    WORD_END_BYTES = [" ", "#", ".", ":"].map(&:ord).freeze
 
     attr_reader :config
 
@@ -52,46 +53,50 @@ module Omoteura
 
     private
 
+    # Each kind is only searched when the ones before it found nothing.
     def find(index, fragment, link, path)
-      [
-        index.spec_entries.select { |e| spec_match?(e.name, fragment) },
-        index.method_entries.select { |e| e.name == fragment },
-        index.statement_entries.select { |e| statement_match?(e.name, fragment) }
-      ].each do |candidates|
-        candidates = narrow_spec_matches(candidates, fragment)
-        case candidates.size
-        when 0 then next
-        when 1 then return success(link, Target.new(path: path, start_line: candidates.first.start_line, end_line: candidates.first.end_line))
-        else
-          lines = candidates.map(&:start_line).join(", ")
-          return failure(link, "matches #{candidates.size} places in #{path} (lines #{lines})")
-        end
+      candidates = spec_candidates(index.spec_entries, fragment)
+      candidates = index.method_entries.select { |e| e.name == fragment } if candidates.empty?
+      candidates = index.statement_entries.select { |e| statement_match?(e.name, fragment) } if candidates.empty?
+
+      case candidates.size
+      when 0 then failure(link, "matches nothing in #{path}")
+      when 1 then success(link, Target.new(path: path, start_line: candidates.first.start_line, end_line: candidates.first.end_line))
+      else
+        lines = candidates.map(&:start_line).join(", ")
+        failure(link, "matches #{candidates.size} places in #{path} (lines #{lines})")
       end
-      failure(link, "matches nothing in #{path}")
+    end
+
+    # An exact description beats descriptions that only end with it.
+    def spec_candidates(entries, fragment)
+      exact = entries.select { |e| e.name == fragment }
+      exact.empty? ? entries.select { |e| spec_suffix_match?(e.name, fragment) } : exact
     end
 
     # A trailing part must start at a word boundary: "email 一意であること"
     # matches "User validations email 一意であること" but "ail 一意であること"
     # does not. In "User#display_name", both "#display_name" and
     # "display_name" match, as "#", "." and "::" also end a word.
-    def spec_match?(name, fragment)
-      return true if name == fragment
-      return false unless name.end_with?(fragment)
+    # Compares bytes so that checking thousands of entries allocates nothing.
+    def spec_suffix_match?(name, fragment)
+      return false unless name.bytesize > fragment.bytesize && name.end_with?(fragment)
 
-      before = name[-fragment.length - 1]
-      [" ", "#", ".", ":"].include?(before) || fragment.start_with?("#", ".", "::")
-    end
-
-    # An exact description beats descriptions that only end with it.
-    def narrow_spec_matches(candidates, fragment)
-      exact = candidates.select { |e| e.name == fragment }
-      exact.empty? ? candidates : exact
+      fragment.start_with?("#", ".", "::") || WORD_END_BYTES.include?(name.getbyte(name.bytesize - fragment.bytesize - 1))
     end
 
     # "validates :email" matches "validates :email, presence: true" but not
     # "validates :email_confirmation".
     def statement_match?(first_line, fragment)
-      first_line.start_with?(fragment) && !first_line[fragment.length]&.match?(IDENTIFIER_CHAR)
+      return false unless first_line.start_with?(fragment)
+
+      following = first_line.getbyte(fragment.bytesize)
+      return true if following.nil?
+      # Only a non-ASCII character needs the regexp; ASCII is checked by byte.
+      return !first_line[fragment.length].match?(IDENTIFIER_CHAR) if following >= 0x80
+
+      !(following == 95 || following == 33 || following == 63 || (48..57).cover?(following) ||
+        (65..90).cover?(following) || (97..122).cover?(following))
     end
 
     def index_for(file)

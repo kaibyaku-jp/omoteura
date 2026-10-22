@@ -141,6 +141,13 @@ RSpec.describe Omoteura::LinkResolver do
       expect(result.target).to eq(target("app/models/user.rb", 2, 3))
     end
 
+    it "treats a following non-ASCII letter as part of the name" do
+      write("lib/settings.rb", "表示名 = \"x\"\n表示 = 1\n")
+
+      expect(resolver.resolve("omoteura:lib/settings.rb#表示").target).to eq(target("lib/settings.rb", 2, 2))
+      expect(resolver.resolve("omoteura:lib/settings.rb#表示名").target).to eq(target("lib/settings.rb", 1, 1))
+    end
+
     it "does not let a statement prefix stop in the middle of a name" do
       result = resolver.resolve("omoteura:#validates :email_confirmation", context_path: "app/models/user.rb")
 
