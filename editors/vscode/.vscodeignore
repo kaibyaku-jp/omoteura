@@ -1,6 +1,7 @@
 # Only dist/, media/ and the documentation files go into the .vsix.
 **
 !dist/extension.cjs
+!dist/webview/**
 !media/**
 !package.json
 !README.md

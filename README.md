@@ -15,9 +15,9 @@ that link to the specs and methods they describe.
 
 > **Status:** pre-release, not yet on RubyGems. The gems below already resolve
 > links, check them in CI and record test results. The VS Code extension in
-> [editors/vscode](editors/vscode) marks linked lines with their test results
-> and flips between code and diagram; showing the drawing inside VS Code is
-> next.
+> [editors/vscode](editors/vscode) marks linked lines with their test results,
+> shows the drawing read-only and flips between the two; editing the drawing
+> in VS Code is next.
 
 
 ## Features
@@ -174,7 +174,9 @@ Keep `tmp/omoteura/` out of version control.
 
 The extension in [editors/vscode](editors/vscode) marks each line a shape
 links to with the result of the tests behind it, explains it on hover, and
-flips between a file and its diagram with `⌥⌘U` (`Ctrl+Alt+U`).
+flips between a file and its diagram with `⌥⌘U` (`Ctrl+Alt+U`). The diagram
+opens in a read-only Excalidraw view with linked shapes outlined by test
+status; clicking a link opens the code.
 
 
 ## Commands
