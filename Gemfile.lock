@@ -16,7 +16,7 @@ PATH
   specs:
     omoteura-rails (0.0.1)
       omoteura-core (= 0.0.1)
-      railties (>= 7.0)
+      railties (>= 7.0, < 9)
 
 PATH
   remote: omoteura-rspec

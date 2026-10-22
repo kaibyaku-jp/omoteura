@@ -15,8 +15,8 @@ Gem::Specification.new do |spec|
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
 
-  spec.files = Dir["lib/**/*.rb"]
+  spec.files = Dir.glob(["lib/**/*.rb", "LICENSE"], base: __dir__)
 
   spec.add_dependency "omoteura-core", Omoteura::VERSION
-  spec.add_dependency "railties", ">= 7.0"
+  spec.add_dependency "railties", ">= 7.0", "< 9"
 end
