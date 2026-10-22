@@ -1,9 +1,17 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo/omoteura-logo-vertical-dark.svg">
+    <img src="docs/logo/omoteura-logo-vertical.svg" alt="omoteura: code in front, context behind." width="300">
+  </picture>
+</p>
+
 # Omoteura [![CI](https://github.com/kaibyaku-jp/omoteura/actions/workflows/ci.yml/badge.svg)](https://github.com/kaibyaku-jp/omoteura/actions/workflows/ci.yml)
 
-Hand-drawn diagrams on the back of your Rails and RSpec code.
+Code in front, context behind.
 
-The code is the *omote* (front). Behind it sits an Excalidraw diagram, the
-*ura* (back), whose shapes link to the specs and methods they describe.
+The code is the *omote* (front). Behind it sits an Excalidraw drawing, the
+*ura* (back): diagrams, notes and the reasons behind the code, with shapes
+that link to the specs and methods they describe.
 
 > **Status:** pre-release, not yet on RubyGems. The gems below already resolve
 > links, check them in CI and record test results. The VS Code extension that
