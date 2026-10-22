@@ -66,6 +66,9 @@ function App() {
   const [loaded, setLoaded] = useState<{ revision: number; scene: Scene }>();
   const [error, setError] = useState<string>();
   const apiRef = useRef<ExcalidrawImperativeAPI>(undefined);
+  // Excalidraw sets up its empty scene after handing out its API, and would
+  // replace a scene loaded before then. Its first change comes after that.
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     apiRef.current = api;
@@ -128,7 +131,7 @@ function App() {
   // Each revision replaces the elements in place, keeping zoom and scroll,
   // and is reported only once Excalidraw holds it.
   useEffect(() => {
-    if (!api || !loaded) {
+    if (!api || !loaded || !initialized) {
       return;
     }
     const { revision, scene } = loaded;
@@ -147,7 +150,7 @@ function App() {
       api.scrollToContent(undefined, { fitToViewport: true });
     }
     vscode.postMessage({ type: "rendered", revision, elementCount: api.getSceneElements().length });
-  }, [api, loaded]);
+  }, [api, loaded, initialized]);
 
   return (
     <>
@@ -158,6 +161,7 @@ function App() {
         // VS Code saves and opens files; ⌘S reaches it when Excalidraw's own saving is off.
         UIOptions={{ canvasActions: { loadScene: false, saveToActiveFile: false, export: false, saveAsImage: false } }}
         onChange={() => {
+          setInitialized(true);
           if (apiRef.current) {
             reportChange(apiRef.current);
           }
