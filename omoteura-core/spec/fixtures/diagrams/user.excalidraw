@@ -4,49 +4,49 @@
   "source": "https://excalidraw.com",
   "elements": [
     {
-      "id": "user-box",
+      "id": "UserBox1",
       "type": "rectangle",
       "isDeleted": false,
       "link": null,
       "boundElements": [
         {
           "type": "text",
-          "id": "user-label"
+          "id": "UserText"
         }
       ]
     },
     {
-      "id": "user-label",
+      "id": "UserText",
       "type": "text",
       "isDeleted": false,
       "link": null,
       "text": "User",
       "originalText": "User",
-      "containerId": "user-box"
+      "containerId": "UserBox1"
     },
     {
-      "id": "email-unique",
+      "id": "EmailBox",
       "type": "rectangle",
       "isDeleted": false,
       "link": "omoteura:#email 一意であること",
       "boundElements": [
         {
           "type": "text",
-          "id": "email-label"
+          "id": "EmailTxt"
         }
       ]
     },
     {
-      "id": "email-label",
+      "id": "EmailTxt",
       "type": "text",
       "isDeleted": false,
       "link": null,
       "text": "email 一意 🔑",
       "originalText": "email 一意 🔑",
-      "containerId": "email-unique"
+      "containerId": "EmailBox"
     },
     {
-      "id": "memo",
+      "id": "MemoText",
       "type": "text",
       "isDeleted": false,
       "link": null,
@@ -55,14 +55,14 @@
       "containerId": null
     },
     {
-      "id": "docs",
+      "id": "DocsLink",
       "type": "rectangle",
       "isDeleted": false,
       "link": "https://example.com/docs",
       "boundElements": null
     },
     {
-      "id": "removed",
+      "id": "Removed1",
       "type": "rectangle",
       "isDeleted": true,
       "link": "omoteura:#削除済み",
