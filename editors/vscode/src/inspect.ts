@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import type { Scene } from "./messages.ts";
 
-// The JSON printed by `omoteura inspect` and `omoteura diagram`, format version 1.
+// The JSON printed by `omoteura inspect`, `omoteura diagram` and `omoteura save`, format version 1.
 
 export type TestStatus = "passed" | "failed" | "pending";
 
@@ -47,32 +47,57 @@ export interface DiagramReport {
   diagram_path: string;
   /** Code files the diagram is attached to; links without a path resolve against the first. */
   attached_to: string[];
+  /** SHA-256 of the file as read, to save only over that version. */
+  digest: string | null;
   scene: Scene | null;
   shapes: Shape[];
   error: string | null;
+}
+
+export interface SaveResult {
+  version: 1;
+  diagram_path: string | null;
+  /** SHA-256 of what was written. */
+  digest: string | null;
+  error: string | null;
+  /** True when the file changed since it was read, so nothing was written. */
+  conflict: boolean;
 }
 
 export class InspectError extends Error {
   override name = "InspectError";
 }
 
-/** Runs a program without a shell and resolves with its standard output. */
-export type Runner = (program: string, args: string[], options: { cwd: string }) => Promise<string>;
+export interface RunOptions {
+  cwd: string;
+  /** Written to the program's standard input. */
+  input?: string;
+  /** Exit statuses besides 0 that still mean the output is the answer. */
+  okStatuses?: readonly number[];
+}
 
-export const execRunner: Runner = (program, args, { cwd }) =>
+/** Runs a program without a shell and resolves with its standard output. */
+export type Runner = (program: string, args: string[], options: RunOptions) => Promise<string>;
+
+export const execRunner: Runner = (program, args, { cwd, input, okStatuses = [] }) =>
   new Promise((resolve, reject) => {
-    execFile(
+    const child = execFile(
       program,
       args,
       { cwd, timeout: 20_000, maxBuffer: 16 * 1024 * 1024, encoding: "utf8" },
       (error, stdout, stderr) => {
-        if (error) {
+        if (error && !(typeof error.code === "number" && okStatuses.includes(error.code))) {
           reject(new InspectError(stderr.trim() || error.message));
         } else {
           resolve(stdout);
         }
       },
     );
+    if (input !== undefined) {
+      // A program that failed to start closes its input; the callback reports why.
+      child.stdin?.on("error", () => {});
+      child.stdin?.end(input);
+    }
   });
 
 /**
@@ -98,18 +123,40 @@ export async function inspectDiagram(
   return parseDiagramReport(await runOmoteura(command, root, "diagram", file, run));
 }
 
+/**
+ * Saves a drawing, as Excalidraw serializes it, to file in the file's own
+ * format. With ifUnchanged, the digest of the file as it was read, nothing
+ * is written over a change made since; the result says so.
+ */
+export async function saveDiagram(
+  command: readonly string[],
+  root: string,
+  file: string,
+  drawing: string,
+  ifUnchanged: string | null,
+  run: Runner = execRunner,
+): Promise<SaveResult> {
+  const extra = ifUnchanged ? ["--if-unchanged", ifUnchanged] : [];
+  // omoteura save exits 1, printing why, when it refuses to write.
+  return parseSaveResult(
+    await runOmoteura(command, root, "save", file, run, extra, { input: drawing, okStatuses: [1] }),
+  );
+}
+
 async function runOmoteura(
   command: readonly string[],
   root: string,
   subcommand: string,
   file: string,
   run: Runner,
+  extra: readonly string[] = [],
+  options: Omit<RunOptions, "cwd"> = {},
 ): Promise<string> {
   const [program, ...base] = command;
   if (!program) {
     throw new InspectError("The omoteura.command setting is empty.");
   }
-  return run(program, [...base, subcommand, file, "--root", root], { cwd: root });
+  return run(program, [...base, subcommand, file, "--root", root, ...extra], { cwd: root, ...options });
 }
 
 export function parseReport(output: string): Report {
@@ -126,6 +173,14 @@ export function parseDiagramReport(output: string): DiagramReport {
     throw unsupported("diagram");
   }
   return data as unknown as DiagramReport;
+}
+
+export function parseSaveResult(output: string): SaveResult {
+  const data = parseJson(output, "save");
+  if (data.version !== 1 || typeof data.conflict !== "boolean") {
+    throw unsupported("save");
+  }
+  return data as unknown as SaveResult;
 }
 
 function parseJson(output: string, subcommand: string): Record<string, unknown> {

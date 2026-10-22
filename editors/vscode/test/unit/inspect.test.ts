@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  execRunner,
   InspectError,
   inspect,
   inspectDiagram,
   parseDiagramReport,
   parseReport,
   type Runner,
+  saveDiagram,
 } from "../../src/inspect.ts";
 
 const report = {
@@ -89,6 +91,68 @@ describe("inspectDiagram", () => {
     assert.throws(
       () => parseDiagramReport(JSON.stringify({ version: 1, shapes: [] })),
       /omoteura diagram printed a format this extension does not understand/,
+    );
+  });
+});
+
+describe("saveDiagram", () => {
+  const saved = { version: 1, diagram_path: "ura/a.excalidraw", digest: "abc", error: null, conflict: false };
+
+  it("sends the drawing on stdin with the digest it was read at", async () => {
+    const calls: unknown[] = [];
+    const run: Runner = async (program, args, options) => {
+      calls.push({ program, args, options });
+      return JSON.stringify(saved);
+    };
+
+    const result = await saveDiagram(
+      ["omoteura"],
+      "/project",
+      "/project/ura/a.excalidraw",
+      '{"elements":[]}',
+      "d1",
+      run,
+    );
+
+    assert.deepEqual(calls, [
+      {
+        program: "omoteura",
+        args: ["save", "/project/ura/a.excalidraw", "--root", "/project", "--if-unchanged", "d1"],
+        options: { cwd: "/project", input: '{"elements":[]}', okStatuses: [1] },
+      },
+    ]);
+    assert.equal(result.digest, "abc");
+  });
+
+  it("leaves out --if-unchanged for a new file", async () => {
+    let args: string[] = [];
+    const run: Runner = async (_program, given) => {
+      args = given;
+      return JSON.stringify(saved);
+    };
+
+    await saveDiagram(["omoteura"], "/project", "/project/ura/b.excalidraw", "{}", null, run);
+
+    assert.deepEqual(args, ["save", "/project/ura/b.excalidraw", "--root", "/project"]);
+  });
+});
+
+describe("execRunner", () => {
+  const echo =
+    "process.stdin.pipe(process.stdout); process.stdin.on('end', () => { process.exitCode = Number(process.argv[1]); });";
+
+  it("writes input to the program and resolves with what it prints", async () => {
+    assert.equal(await execRunner(process.execPath, ["-e", echo, "0"], { cwd: ".", input: "表と裏" }), "表と裏");
+  });
+
+  it("resolves on an exit status the caller accepts, and rejects on others", async () => {
+    assert.equal(
+      await execRunner(process.execPath, ["-e", echo, "1"], { cwd: ".", input: "refused", okStatuses: [1] }),
+      "refused",
+    );
+    await assert.rejects(
+      execRunner(process.execPath, ["-e", echo, "2"], { cwd: ".", input: "x", okStatuses: [1] }),
+      InspectError,
     );
   });
 });
