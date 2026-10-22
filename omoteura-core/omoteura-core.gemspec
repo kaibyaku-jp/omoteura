@@ -5,7 +5,7 @@ require_relative "lib/omoteura/core/version"
 Gem::Specification.new do |spec|
   spec.name          = "omoteura-core"
   spec.version       = Omoteura::VERSION
-  spec.authors       = ["KAIBYAKU K.K."]
+  spec.authors       = ["KAIBYAKU K.K"]
   spec.summary       = "Diagram file I/O, omoteura: link resolution and CLI for Omoteura"
   spec.homepage      = "https://github.com/kaibyaku-jp/omoteura"
   spec.license       = "MIT"
