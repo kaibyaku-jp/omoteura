@@ -51,6 +51,15 @@ module Omoteura
       find(index, fragment, link, path)
     end
 
+    # The first of links that resolves to exactly the code starting at line
+    # of path, or nil. Links without a path are read against path.
+    def exact_link(links, path:, line:)
+      links.find do |link|
+        target = resolve(link, context_path: path).target
+        target && target.path == path && target.start_line == line
+      end
+    end
+
     private
 
     # Each kind is only searched when the ones before it found nothing.
