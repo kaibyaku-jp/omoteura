@@ -24,6 +24,8 @@ export type HostMessage =
   | { type: "error"; message: string }
   /** Asks for the drawing as Excalidraw saves it. */
   | { type: "serialize"; requestId: number }
+  /** Asks which shapes are selected. */
+  | { type: "selection"; requestId: number }
   /** The drawing as it was at signature is saved. */
   | { type: "saved"; signature: string }
   /** Changes one element as the user would; for the integration tests. */
@@ -37,5 +39,7 @@ export type WebviewMessage =
   | { type: "changed" }
   /** signature identifies this state of the drawing, to tell later changes from it. */
   | { type: "serialized"; requestId: number; drawing: string; signature: string }
+  /** The selected shapes, a bound text standing for its container. */
+  | { type: "selected"; requestId: number; elements: { id: string; link: string | null }[] }
   | { type: "openLink"; elementId: string }
   | { type: "failed"; message: string };

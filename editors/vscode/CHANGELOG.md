@@ -18,6 +18,8 @@
   elsewhere.
 - Omoteura: Draft Diagram, which drafts the open file's diagram or adds
   what it lacks, with the `omoteura.draftFormat` setting.
+- Omoteura: Link Shape to Code, which links the selected shape to a place
+  picked from the attached code.
 - The Omoteura Coverage panel, listing which declarations and public methods
   of the open file its specs cover.
 - A one-time notice with the fix when omoteura cannot run: Ruby too old (as

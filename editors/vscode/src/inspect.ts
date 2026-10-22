@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import type { Scene } from "./messages.ts";
 
-// The JSON printed by `omoteura inspect`, `diagram`, `coverage`, `save` and `draft --json`, format version 1.
+// The JSON printed by `omoteura inspect`, `diagram`, `coverage`, `links`, `save` and `draft --json`, format version 1.
 
 export type TestStatus = "passed" | "failed" | "pending";
 
@@ -89,6 +89,14 @@ export interface DraftResult {
   status: "written" | "draft" | "exists" | "empty" | "merged" | "up_to_date" | "no_diagram";
 }
 
+export interface LinkCandidate {
+  /** An omoteura: link that resolves to exactly this place. */
+  link: string;
+  label: string;
+  kind: "group" | "example" | CoverageItem["kind"];
+  line: number;
+}
+
 export interface SaveResult {
   version: 1;
   diagram_path: string | null;
@@ -166,6 +174,20 @@ export async function inspectCoverage(
   run: Runner = execRunner,
 ): Promise<CoverageReport> {
   return parseCoverageReport(await runOmoteura(command, root, "coverage", file, run));
+}
+
+/** The places in one code file a shape can link to. */
+export async function linkCandidates(
+  command: readonly string[],
+  root: string,
+  file: string,
+  run: Runner = execRunner,
+): Promise<LinkCandidate[]> {
+  const data = parseJson(await runOmoteura(command, root, "links", file, run), "links");
+  if (data.version !== 1 || !Array.isArray(data.candidates)) {
+    throw unsupported("links");
+  }
+  return data.candidates as LinkCandidate[];
 }
 
 /**

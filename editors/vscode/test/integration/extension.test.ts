@@ -386,6 +386,37 @@ describe("Omoteura", () => {
     );
   });
 
+  it("links a shape to a place chosen from the attached code", async () => {
+    const diagram = file("ura/spec/models/user_spec.excalidraw.md");
+    const original = await read(diagram);
+    await vscode.commands.executeCommand("vscode.openWith", diagram, "omoteura.diagram");
+    await until(() => api.diagram(diagram)?.renderedElements !== undefined, "the diagram");
+
+    const offered: string[] = [];
+    const showQuickPick = vscode.window.showQuickPick;
+    Object.assign(vscode.window, {
+      showQuickPick: async (items: readonly (vscode.QuickPickItem & { link: string | null })[]) => {
+        offered.push(...items.map((item) => item.label));
+        return items.find((item) => item.label === "User#display_name falls back to the email");
+      },
+    });
+    try {
+      await api.linkShape(diagram, "MemoText");
+      await until(() => api.diagram(diagram)?.dirty === true, "the change");
+      assert.ok(await vscode.workspace.save(diagram));
+    } finally {
+      Object.assign(vscode.window, { showQuickPick });
+    }
+
+    try {
+      assert.ok(offered.includes("User validations requires an email"));
+      const memo = scene(diagram).elements.find((element) => element.id === "MemoText");
+      assert.equal(memo?.link, "omoteura:#User#display_name falls back to the email");
+    } finally {
+      await vscode.workspace.fs.writeFile(diagram, new TextEncoder().encode(original));
+    }
+  });
+
   it("creates an empty diagram at the conventional path when asked", async () => {
     const code = file("app/models/post.rb");
     await vscode.workspace.fs.writeFile(code, new TextEncoder().encode("class Post\nend\n"));

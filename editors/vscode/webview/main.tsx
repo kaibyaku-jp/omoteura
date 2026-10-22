@@ -74,6 +74,22 @@ const CANVAS_ACTIONS: Record<string, boolean> = {
 };
 const UI_OPTIONS = { canvasActions: CANVAS_ACTIONS } as ExcalidrawProps["UIOptions"];
 
+/** The selected shapes; a selected label stands for the shape it is bound to. */
+function selectedShapes(api: ExcalidrawImperativeAPI): { id: string; link: string | null }[] {
+  const elements = new Map<string, ExcalidrawElement>(
+    api.getSceneElements().map((element: ExcalidrawElement) => [element.id, element]),
+  );
+  const shapes = new Map<string, { id: string; link: string | null }>();
+  for (const id of Object.keys(api.getAppState().selectedElementIds)) {
+    const element = elements.get(id);
+    const shape = element?.type === "text" && element.containerId ? elements.get(element.containerId) : element;
+    if (shape) {
+      shapes.set(shape.id, { id: shape.id, link: shape.link });
+    }
+  }
+  return [...shapes.values()];
+}
+
 function App() {
   const [api, setApi] = useState<ExcalidrawImperativeAPI>();
   const [loaded, setLoaded] = useState<{ revision: number; scene: Scene }>();
@@ -113,6 +129,11 @@ function App() {
               drawing,
               signature: signature(current),
             });
+          }
+          break;
+        case "selection":
+          if (current) {
+            vscode.postMessage({ type: "selected", requestId: message.requestId, elements: selectedShapes(current) });
           }
           break;
         case "saved":
