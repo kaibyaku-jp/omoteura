@@ -1,0 +1,5 @@
+# frozen_string_literal: true
+
+require "omoteura/core"
+require "omoteura/rails"
+require "omoteura/rspec"
