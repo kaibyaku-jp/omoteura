@@ -29,6 +29,21 @@ BUNDLE_GEMFILE=gemfiles/rspec_3_12.gemfile bundle install
 BUNDLE_GEMFILE=gemfiles/rspec_3_12.gemfile bundle exec rake spec
 ```
 
+## The VS Code extension
+
+The extension lives in `editors/vscode` and uses Node 24 from the same Nix
+shell:
+
+```sh
+cd editors/vscode
+npm ci
+npm run lint && npm run typecheck && npm test
+npm run test:integration   # downloads VS Code and runs it on the sample project
+```
+
+Set `VSCODE_VERSION=1.95.0` to run the integration tests on the oldest
+supported VS Code, as CI does.
+
 ## Performance
 
 Omoteura runs over every Ruby file in a project, so keep an eye on
@@ -44,6 +59,7 @@ after numbers in pull requests that touch those paths.
 | `omoteura-rails/` | Rails analysis |
 | `omoteura-rspec/` | the RSpec formatter |
 | `lib/` (root) | the `omoteura` meta gem |
+| `editors/vscode/` | the VS Code extension |
 
 ## Pull requests
 

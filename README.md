@@ -14,8 +14,10 @@ The code is the *omote* (front). Behind it sits an Excalidraw drawing, the
 that link to the specs and methods they describe.
 
 > **Status:** pre-release, not yet on RubyGems. The gems below already resolve
-> links, check them in CI and record test results. The VS Code extension that
-> flips between code and diagram is being built.
+> links, check them in CI and record test results. The VS Code extension in
+> [editors/vscode](editors/vscode) marks linked lines with their test results
+> and flips between code and diagram; showing the drawing inside VS Code is
+> next.
 
 
 ## Features
@@ -166,6 +168,13 @@ Add the formatter to `.rspec`, next to your usual one:
 
 Each example's status and failure message go to `tmp/omoteura/results.json`.
 Keep `tmp/omoteura/` out of version control.
+
+
+## In VS Code
+
+The extension in [editors/vscode](editors/vscode) marks each line a shape
+links to with the result of the tests behind it, explains it on hover, and
+flips between a file and its diagram with `⌥⌘U` (`Ctrl+Alt+U`).
 
 
 ## Commands
