@@ -5,7 +5,7 @@ require_relative "../omoteura-core/lib/omoteura/core/version"
 Gem::Specification.new do |spec|
   spec.name          = "omoteura-rspec"
   spec.version       = Omoteura::VERSION
-  spec.authors       = ["KAIBYAKU Inc."]
+  spec.authors       = ["KAIBYAKU K.K."]
   spec.summary       = "RSpec spec analysis and result formatter for Omoteura"
   spec.homepage      = "https://github.com/kaibyaku-jp/omoteura"
   spec.license       = "MIT"

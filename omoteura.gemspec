@@ -5,7 +5,7 @@ require_relative "omoteura-core/lib/omoteura/core/version"
 Gem::Specification.new do |spec|
   spec.name          = "omoteura"
   spec.version       = Omoteura::VERSION
-  spec.authors       = ["KAIBYAKU Inc."]
+  spec.authors       = ["KAIBYAKU K.K."]
   spec.summary       = "Overlay hand-drawn Excalidraw diagrams on Rails and RSpec code"
   spec.description   = "Meta gem that installs omoteura-core, omoteura-rails and omoteura-rspec."
   spec.homepage      = "https://github.com/kaibyaku-jp/omoteura"
