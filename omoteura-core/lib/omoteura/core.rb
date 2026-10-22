@@ -6,6 +6,7 @@ module Omoteura
   class Error < StandardError; end
 end
 
+require "omoteura/checker"
 require "omoteura/config"
 require "omoteura/diagram"
 require "omoteura/link_resolver"
