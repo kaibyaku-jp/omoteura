@@ -55,6 +55,8 @@ export interface OmoteuraApi {
   diagram(uri: vscode.Uri): DiagramViewState | undefined;
   readonly onDidRenderDiagram: vscode.Event<vscode.Uri>;
   openShape(uri: vscode.Uri, elementId: string): Promise<void>;
+  /** Changes one element of the open diagram as the user would. */
+  editDiagram(uri: vscode.Uri, elementId: string, changes: Record<string, unknown>): void;
 }
 
 export function activate(context: vscode.ExtensionContext): OmoteuraApi {
@@ -359,6 +361,7 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     diagram: (uri) => diagrams.state(uri),
     onDidRenderDiagram: diagrams.onDidRender,
     openShape: (uri, elementId) => diagrams.openShape(uri, elementId),
+    editDiagram: (uri, elementId, changes) => diagrams.edit(uri, elementId, changes),
   };
 }
 

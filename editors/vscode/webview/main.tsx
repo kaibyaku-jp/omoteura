@@ -1,13 +1,20 @@
-import { Excalidraw } from "@excalidraw/excalidraw";
+import {
+  CaptureUpdateAction,
+  Excalidraw,
+  hashElementsVersion,
+  newElementWith,
+  serializeAsJSON,
+} from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
-import type { NonDeletedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import type { ExcalidrawElement, NonDeletedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { BinaryFileData, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { StrictMode, useEffect, useState } from "react";
+import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { HostMessage, Scene, WebviewMessage } from "../src/messages.ts";
 
-// Shows one drawing read-only. The host sends the scene, with linked
-// shapes already restyled by status, and opens the code a link points to.
+// Shows and edits one drawing. The host sends the scene, with linked shapes
+// already restyled by status, saves what this hands back, and opens the
+// code a link points to.
 
 declare function acquireVsCodeApi(): { postMessage(message: WebviewMessage): void };
 
@@ -24,19 +31,93 @@ function theme(): "light" | "dark" {
   return classes.contains("vscode-dark") || classes.contains("vscode-high-contrast") ? "dark" : "light";
 }
 
+// The parts of Excalidraw's saved app state that a drawing keeps.
+const SAVED_APP_STATE = ["viewBackgroundColor", "gridSize", "gridStep", "gridModeEnabled"] as const;
+
+/** Identifies what would be saved, so selecting or scrolling is not a change. */
+function signature(api: ExcalidrawImperativeAPI): string {
+  const appState = api.getAppState();
+  const saved = SAVED_APP_STATE.map((key) => String(appState[key]));
+  return [
+    hashElementsVersion(api.getSceneElementsIncludingDeleted()),
+    Object.keys(api.getFiles()).length,
+    ...saved,
+  ].join("|");
+}
+
+// The drawing as last loaded or saved, and whether the host was told it
+// changed since. A webview shows one drawing.
+const changes: { clean: string | undefined; reported: boolean } = { clean: undefined, reported: false };
+
+function markClean(clean: string): void {
+  changes.clean = clean;
+  changes.reported = false;
+}
+
+function reportChange(api: ExcalidrawImperativeAPI): void {
+  if (changes.clean !== undefined && !changes.reported && signature(api) !== changes.clean) {
+    changes.reported = true;
+    vscode.postMessage({ type: "changed" });
+  }
+}
+
 function App() {
   const [api, setApi] = useState<ExcalidrawImperativeAPI>();
   const [loaded, setLoaded] = useState<{ revision: number; scene: Scene }>();
   const [error, setError] = useState<string>();
+  const apiRef = useRef<ExcalidrawImperativeAPI>(undefined);
+
+  useEffect(() => {
+    apiRef.current = api;
+  }, [api]);
 
   useEffect(() => {
     const listener = (event: MessageEvent<HostMessage>) => {
       const message = event.data;
-      if (message.type === "load") {
-        setError(undefined);
-        setLoaded({ revision: message.revision, scene: message.scene });
-      } else if (message.type === "error") {
-        setError(message.message);
+      const current = apiRef.current;
+      switch (message.type) {
+        case "load":
+          setError(undefined);
+          setLoaded({ revision: message.revision, scene: message.scene });
+          break;
+        case "error":
+          setError(message.message);
+          break;
+        case "serialize":
+          if (current) {
+            const drawing = serializeAsJSON(
+              current.getSceneElements(),
+              current.getAppState(),
+              current.getFiles(),
+              "local",
+            );
+            vscode.postMessage({
+              type: "serialized",
+              requestId: message.requestId,
+              drawing,
+              signature: signature(current),
+            });
+          }
+          break;
+        case "saved":
+          // Changes made while saving are still unsaved.
+          markClean(message.signature);
+          if (current) {
+            reportChange(current);
+          }
+          break;
+        case "edit":
+          current?.updateScene({
+            elements: current
+              .getSceneElementsIncludingDeleted()
+              .map((element: ExcalidrawElement) =>
+                element.id === message.elementId
+                  ? newElementWith(element, message.changes as Partial<ExcalidrawElement>)
+                  : element,
+              ),
+            captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+          });
+          break;
       }
     };
     window.addEventListener("message", listener);
@@ -51,12 +132,17 @@ function App() {
       return;
     }
     const { revision, scene } = loaded;
+    const appState = Object.fromEntries(
+      SAVED_APP_STATE.filter((key) => key in scene.appState).map((key) => [key, scene.appState[key]]),
+    );
     // Excalidraw's types are stricter than the stored JSON; it validates the data itself.
     api.addFiles(Object.values(scene.files) as BinaryFileData[]);
     api.updateScene({
       elements: scene.elements as never,
-      appState: { viewBackgroundColor: (scene.appState.viewBackgroundColor as string | undefined) ?? "#ffffff" },
+      appState: { viewBackgroundColor: "#ffffff", ...appState } as never,
+      captureUpdate: CaptureUpdateAction.NEVER,
     });
+    markClean(signature(api));
     if (revision === 1) {
       api.scrollToContent(undefined, { fitToViewport: true });
     }
@@ -68,8 +154,14 @@ function App() {
       {error && <p className="omoteura-error">{error}</p>}
       <Excalidraw
         excalidrawAPI={setApi}
-        viewModeEnabled
         theme={theme()}
+        // VS Code saves and opens files; ⌘S reaches it when Excalidraw's own saving is off.
+        UIOptions={{ canvasActions: { loadScene: false, saveToActiveFile: false, export: false, saveAsImage: false } }}
+        onChange={() => {
+          if (apiRef.current) {
+            reportChange(apiRef.current);
+          }
+        }}
         onLinkOpen={(element: NonDeletedExcalidrawElement, event: CustomEvent) => {
           if (element.link?.startsWith("omoteura:")) {
             event.preventDefault();
