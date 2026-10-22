@@ -1,0 +1,6 @@
+# frozen_string_literal: true
+
+# The oldest rspec-core that omoteura-rspec supports.
+eval_gemfile "../Gemfile"
+
+gem "rspec-core", "~> 3.12.0"

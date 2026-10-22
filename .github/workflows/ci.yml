@@ -20,6 +20,13 @@ jobs:
       fail-fast: false
       matrix:
         ruby: ["3.4", "4.0"]
+        gemfile: [Gemfile]
+        include:
+          # The oldest rspec-core that omoteura-rspec supports.
+          - ruby: "3.4"
+            gemfile: gemfiles/rspec_3_12.gemfile
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
