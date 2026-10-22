@@ -16,8 +16,8 @@ jobs:
     if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      security-events: write
+      contents: read # check out the code
+      security-events: write # upload the analysis results
     strategy:
       fail-fast: false
       matrix:
