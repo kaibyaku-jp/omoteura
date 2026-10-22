@@ -138,6 +138,35 @@ describe("Omoteura", () => {
     await until(() => activeTabUri() === spec().toString(), "the spec tab");
   });
 
+  it("explains once when omoteura cannot be run", async () => {
+    const settings = vscode.workspace.getConfiguration("omoteura");
+    const command = settings.get<string[]>("command");
+    const warnings: string[] = [];
+    const showWarningMessage = vscode.window.showWarningMessage;
+    Object.assign(vscode.window, {
+      showWarningMessage: async (message: string) => {
+        warnings.push(message);
+        return undefined;
+      },
+    });
+    try {
+      await settings.update("command", ["omoteura-missing-program"], vscode.ConfigurationTarget.Workspace);
+      await show(spec());
+      await until(() => api.error(spec()) !== undefined, "the error");
+      // A second failure of the same kind must not announce it again.
+      const second = refreshOf(spec(), () => api.error(spec()) !== undefined);
+      await vscode.commands.executeCommand("omoteura.refresh");
+      await second;
+    } finally {
+      Object.assign(vscode.window, { showWarningMessage });
+      await settings.update("command", command, vscode.ConfigurationTarget.Workspace);
+    }
+
+    assert.deepEqual(warnings, [
+      "VS Code cannot find omoteura-missing-program. Start VS Code from a terminal so it sees your PATH, or set omoteura.command to a full path.",
+    ]);
+  });
+
   it("creates an empty diagram at the conventional path when asked", async () => {
     const code = file("app/models/post.rb");
     await vscode.workspace.fs.writeFile(code, new TextEncoder().encode("class Post\nend\n"));
