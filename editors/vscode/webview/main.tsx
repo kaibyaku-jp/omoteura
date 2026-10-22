@@ -7,7 +7,7 @@ import {
 } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawElement, NonDeletedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import type { BinaryFileData, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import type { BinaryFileData, ExcalidrawImperativeAPI, ExcalidrawProps } from "@excalidraw/excalidraw/types";
 import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { HostMessage, Scene, WebviewMessage } from "../src/messages.ts";
@@ -60,6 +60,19 @@ function reportChange(api: ExcalidrawImperativeAPI): void {
     vscode.postMessage({ type: "changed" });
   }
 }
+
+// VS Code saves and opens files, so Excalidraw's own file actions are off
+// and their shortcuts (⌘S, ⌘⇧S, ⌘O) reach VS Code. Excalidraw skips a
+// shortcut whose action is false here; saveFileToDisk, behind ⌘⇧S, has
+// no menu entry, so it is missing from the type.
+const CANVAS_ACTIONS: Record<string, boolean> = {
+  loadScene: false,
+  saveToActiveFile: false,
+  export: false,
+  saveAsImage: false,
+  saveFileToDisk: false,
+};
+const UI_OPTIONS = { canvasActions: CANVAS_ACTIONS } as ExcalidrawProps["UIOptions"];
 
 function App() {
   const [api, setApi] = useState<ExcalidrawImperativeAPI>();
@@ -158,8 +171,7 @@ function App() {
       <Excalidraw
         excalidrawAPI={setApi}
         theme={theme()}
-        // VS Code saves and opens files; ⌘S reaches it when Excalidraw's own saving is off.
-        UIOptions={{ canvasActions: { loadScene: false, saveToActiveFile: false, export: false, saveAsImage: false } }}
+        UIOptions={UI_OPTIONS}
         onChange={() => {
           setInitialized(true);
           if (apiRef.current) {
