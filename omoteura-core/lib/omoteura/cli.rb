@@ -6,7 +6,8 @@ require "omoteura/core"
 
 module Omoteura
   # The omoteura command. #run returns the exit status: 0 when everything
-  # is fine, 1 when check finds problems, 2 for usage or settings errors.
+  # is fine, 1 when check finds problems or save refuses to write, 2 for
+  # usage or settings errors.
   class CLI
     USAGE = <<~TEXT
       Usage: omoteura <command> [options]
@@ -16,14 +17,16 @@ module Omoteura
         inspect   Print what an editor needs about one code file, as JSON
         diagram   Print what an editor needs to show one diagram, as JSON
         draft     Draft a diagram from code, as a starting point to draw on
+        save      Save a drawing an editor changed, read as JSON from stdin
         version   Print the version
 
       Run "omoteura <command> --help" for a command's options.
     TEXT
 
-    def initialize(out: $stdout, err: $stderr)
+    def initialize(out: $stdout, err: $stderr, input: $stdin)
       @out = out
       @err = err
+      @input = input
     end
 
     def run(argv)
@@ -33,6 +36,7 @@ module Omoteura
       when "inspect" then editor_report(args, "inspect FILE") { |inspector, file| inspector.report(file) }
       when "diagram" then editor_report(args, "diagram FILE") { |inspector, file| inspector.diagram_report(file) }
       when "draft" then draft(args)
+      when "save" then save(args)
       when "version", "--version", "-v"
         @out.puts VERSION
         0
@@ -133,6 +137,37 @@ module Omoteura
       drafter = Draft.new(config, only: options[:only], out: options[:out], format: format)
       paths.each { |path| @out.puts draft_line(drafter.draft(path, dry_run: options[:dry_run]), options[:dry_run]) }
       0
+    rescue OptionParser::ParseError, Config::Invalid => e
+      @err.puts "omoteura: #{e.message}"
+      2
+    end
+
+    # Prints one line of JSON: where the drawing went and the digest of
+    # what was written, or why nothing was.
+    def save(args)
+      options = {root: Dir.pwd, if_unchanged: nil}
+      parser = OptionParser.new do |o|
+        o.banner = "Usage: omoteura save FILE [options] < drawing.json"
+        o.on("--root DIR", "Project root (default: the current directory)") { |dir| options[:root] = dir }
+        o.on("--if-unchanged DIGEST", "Refuse to save unless the file's SHA-256 is still DIGEST") { |digest| options[:if_unchanged] = digest }
+        o.on("-h", "--help", "Show this help") do
+          @out.puts o
+          return 0
+        end
+      end
+      parser.parse!(args)
+      raise OptionParser::InvalidArgument, "expected exactly one FILE" unless args.size == 1
+
+      config = Config.load(options[:root])
+      begin
+        result = Writer.new(config).save(File.expand_path(args.first), JSON.parse(@input.read), if_unchanged: options[:if_unchanged])
+        @out.puts JSON.generate(version: Inspector::FORMAT_VERSION, diagram_path: result.diagram_path, digest: result.digest, error: nil, conflict: false)
+        0
+      rescue JSON::ParserError, Writer::Invalid, Writer::Conflict, Diagram::ParseError => e
+        error = e.is_a?(JSON::ParserError) ? "the drawing is not valid JSON" : e.message
+        @out.puts JSON.generate(version: Inspector::FORMAT_VERSION, diagram_path: nil, digest: nil, error: error, conflict: e.is_a?(Writer::Conflict))
+        1
+      end
     rescue OptionParser::ParseError, Config::Invalid => e
       @err.puts "omoteura: #{e.message}"
       2
