@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { InspectError, inspect, type Report } from "./inspect.ts";
+import { DIAGRAM_VIEW_TYPE, DiagramEditorProvider, type DiagramViewState } from "./diagramEditor.ts";
+import { InspectError, inspect, inspectDiagram, type Report } from "./inspect.ts";
 import {
   hoverEntries,
   MARKER_STATUSES,
@@ -51,6 +52,9 @@ export interface OmoteuraApi {
   /** Why the last inspection of uri failed, if it did. */
   error(uri: vscode.Uri): string | undefined;
   readonly onDidRefresh: vscode.Event<vscode.Uri>;
+  diagram(uri: vscode.Uri): DiagramViewState | undefined;
+  readonly onDidRenderDiagram: vscode.Event<vscode.Uri>;
+  openShape(uri: vscode.Uri, elementId: string): Promise<void>;
 }
 
 export function activate(context: vscode.ExtensionContext): OmoteuraApi {
@@ -74,6 +78,10 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     ]),
   );
 
+  const commandFor = (uri: vscode.Uri) =>
+    vscode.workspace.getConfiguration("omoteura", uri).get<string[]>("command", DEFAULT_COMMAND);
+  const diagrams = new DiagramEditorProvider(context.extensionUri, commandFor, log);
+
   const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
   statusBar.command = "omoteura.flip";
 
@@ -86,12 +94,9 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     if (!folder || !isCode(document)) {
       return;
     }
-    const command = vscode.workspace
-      .getConfiguration("omoteura", document.uri)
-      .get<string[]>("command", DEFAULT_COMMAND);
     const key = document.uri.toString();
     try {
-      reports.set(key, await inspect(command, folder.uri.fsPath, document.uri.fsPath));
+      reports.set(key, await inspect(commandFor(document.uri), folder.uri.fsPath, document.uri.fsPath));
       errors.delete(key);
     } catch (error) {
       const message = error instanceof InspectError || error instanceof Error ? error.message : String(error);
@@ -229,7 +234,7 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
       return;
     }
     if (report.attachment) {
-      await open(vscode.Uri.joinPath(folder.uri, report.attachment.diagram_path));
+      await openDiagram(vscode.Uri.joinPath(folder.uri, report.attachment.diagram_path));
       return;
     }
     const create = "Create";
@@ -243,13 +248,18 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
         await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(diagram, ".."));
         await vscode.workspace.fs.writeFile(diagram, new TextEncoder().encode(EMPTY_DIAGRAM));
       }
-      await open(diagram);
+      await openDiagram(diagram);
       scheduleRefresh(document);
     }
   }
 
   // A diagram can back several files; go to the one whose report names it.
+  // A shared diagram backs several files: prefer one the user came from.
   async function flipToCode(diagram: vscode.Uri): Promise<void> {
+    const folder = vscode.workspace.getWorkspaceFolder(diagram);
+    if (!folder) {
+      return;
+    }
     const relative = vscode.workspace.asRelativePath(diagram, false);
     for (const [key, report] of reports) {
       if (report.attachment?.diagram_path === relative) {
@@ -257,36 +267,65 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
         return;
       }
     }
-    void vscode.window.showInformationMessage(
-      "Omoteura does not know which code this diagram is behind yet. Open the code file and flip from there.",
-    );
+    try {
+      const attachedTo = (
+        diagrams.state(diagram)?.report ??
+        (await inspectDiagram(commandFor(diagram), folder.uri.fsPath, diagram.fsPath))
+      ).attached_to;
+      if (attachedTo[0]) {
+        await open(vscode.Uri.joinPath(folder.uri, attachedTo[0]));
+        return;
+      }
+    } catch (error) {
+      log.error(`Could not read ${relative}:`, error instanceof Error ? error.message : String(error));
+    }
+    void vscode.window.showInformationMessage(`No code file is attached to ${relative}.`);
   }
 
   async function open(uri: vscode.Uri): Promise<void> {
     await vscode.commands.executeCommand("vscode.open", uri, { viewColumn: vscode.ViewColumn.Active });
   }
 
+  async function openDiagram(uri: vscode.Uri): Promise<void> {
+    await vscode.commands.executeCommand("vscode.openWith", uri, DIAGRAM_VIEW_TYPE, vscode.ViewColumn.Active);
+  }
+
+  function refreshEverything(): void {
+    refreshVisible();
+    diagrams.refreshAll();
+  }
+
   context.subscriptions.push(
     log,
     refreshed,
+    diagrams,
+    vscode.window.registerCustomEditorProvider(DIAGRAM_VIEW_TYPE, diagrams, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
     statusBar,
     ...decorations.values(),
     vscode.commands.registerCommand("omoteura.flip", flip),
-    vscode.commands.registerCommand("omoteura.refresh", refreshVisible),
+    vscode.commands.registerCommand("omoteura.refresh", refreshEverything),
     vscode.languages.registerHoverProvider({ language: "ruby", scheme: "file" }, { provideHover }),
     vscode.window.onDidChangeVisibleTextEditors(() => {
       render();
       refreshVisible();
     }),
     vscode.window.onDidChangeActiveTextEditor(renderStatusBar),
-    vscode.workspace.onDidSaveTextDocument(scheduleRefresh),
+    vscode.workspace.onDidSaveTextDocument((document) => {
+      scheduleRefresh(document);
+      // Saved code can move the lines a diagram's links point to.
+      if (isCode(document)) {
+        diagrams.refreshAll();
+      }
+    }),
     vscode.workspace.onDidCloseTextDocument((document) => {
       reports.delete(document.uri.toString());
       errors.delete(document.uri.toString());
     }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("omoteura")) {
-        refreshVisible();
+        refreshEverything();
       }
     }),
     {
@@ -301,9 +340,9 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
   // Test results, diagrams and settings all change what the markers show.
   for (const pattern of ["**/tmp/omoteura/results.json", "**/*.{excalidraw,md}", "**/.omoteura{,.local}.yml"]) {
     const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-    watcher.onDidChange(refreshVisible);
-    watcher.onDidCreate(refreshVisible);
-    watcher.onDidDelete(refreshVisible);
+    watcher.onDidChange(refreshEverything);
+    watcher.onDidCreate(refreshEverything);
+    watcher.onDidDelete(refreshEverything);
     context.subscriptions.push(watcher);
   }
 
@@ -317,6 +356,9 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     },
     error: (uri) => errors.get(uri.toString()),
     onDidRefresh: refreshed.event,
+    diagram: (uri) => diagrams.state(uri),
+    onDidRenderDiagram: diagrams.onDidRender,
+    openShape: (uri, elementId) => diagrams.openShape(uri, elementId),
   };
 }
 

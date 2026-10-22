@@ -30,7 +30,14 @@ async function show(uri: vscode.Uri): Promise<void> {
 
 function activeTabUri(): string | undefined {
   const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
-  return input instanceof vscode.TabInputText ? input.uri.toString() : undefined;
+  return input instanceof vscode.TabInputText || input instanceof vscode.TabInputCustom
+    ? input.uri.toString()
+    : undefined;
+}
+
+function activeTabViewType(): string | undefined {
+  const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+  return input instanceof vscode.TabInputCustom ? input.viewType : undefined;
 }
 
 async function until(condition: () => boolean, what: string): Promise<void> {
@@ -127,15 +134,42 @@ describe("Omoteura", () => {
     assert.match(text, /got: "aki"/);
   });
 
-  it("flips from the code to its diagram and back", async () => {
+  it("flips from the code to its diagram, drawn by Excalidraw, and back", async () => {
+    const diagram = file("ura/spec/models/user_spec.excalidraw.md");
     await show(spec());
     await until(() => api.report(spec()) !== undefined, "the report");
 
+    const rendered = new Promise<void>((resolve) => {
+      const listener = api.onDidRenderDiagram((uri) => {
+        if (uri.toString() === diagram.toString()) {
+          listener.dispose();
+          resolve();
+        }
+      });
+    });
     await vscode.commands.executeCommand("omoteura.flip");
-    await until(() => activeTabUri() === file("ura/spec/models/user_spec.excalidraw.md").toString(), "the diagram tab");
+    await rendered;
+
+    assert.equal(activeTabUri(), diagram.toString());
+    assert.equal(activeTabViewType(), "omoteura.diagram");
+    assert.equal(api.diagram(diagram)?.renderedElements, 5);
+    assert.deepEqual(api.diagram(diagram)?.failures, []);
+    assert.deepEqual(api.diagram(diagram)?.report?.attached_to, ["spec/models/user_spec.rb"]);
 
     await vscode.commands.executeCommand("omoteura.flip");
     await until(() => activeTabUri() === spec().toString(), "the spec tab");
+  });
+
+  it("opens the code a shape links to and selects its lines", async () => {
+    const diagram = file("ura/spec/models/user_spec.excalidraw.md");
+    await vscode.commands.executeCommand("vscode.openWith", diagram, "omoteura.diagram");
+    await until(() => api.diagram(diagram)?.report !== undefined, "the diagram report");
+
+    await api.openShape(diagram, "required");
+
+    await until(() => vscode.window.activeTextEditor?.document.uri.toString() === spec().toString(), "the spec");
+    const selection = vscode.window.activeTextEditor?.selection;
+    assert.deepEqual([selection?.start.line, selection?.end.line], [6, 8]);
   });
 
   it("explains once when omoteura cannot be run", async () => {
