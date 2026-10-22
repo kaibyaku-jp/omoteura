@@ -152,6 +152,59 @@ RSpec.describe Omoteura::CLI do
     end
   end
 
+  describe "draft" do
+    it "writes a draft for each file and glob match and says where" do
+      write("app/models/post.rb", "class Post\n  def title\n  end\nend\n")
+
+      status, out, err = run_cli("draft", "app/models/*.rb", "--root", root)
+
+      expect([status, err]).to eq([0, ""])
+      expect(out).to eq(<<~TEXT)
+        wrote ura/app/models/post.excalidraw (1 shape)
+        wrote ura/app/models/user.excalidraw (1 shape)
+      TEXT
+      expect(File).to exist(File.join(root, "ura/app/models/post.excalidraw"))
+    end
+
+    it "says what it would write on a dry run" do
+      expect(run_cli("draft", "app/models/user.rb", "--root", root, "--dry-run"))
+        .to eq([0, "would write ura/app/models/user.excalidraw (1 shape)\n", ""])
+    end
+
+    it "explains why it skipped a file" do
+      write("lib/constants.rb", "LIMIT = 10\n")
+
+      expect(run_cli("draft", "lib/constants.rb", "--root", root)).to eq([0, "skipped lib/constants.rb: nothing to draw\n", ""])
+    end
+
+    it "exits 2 for a glob that matches nothing" do
+      expect(run_cli("draft", "app/nothing/*.rb", "--root", root)).to eq([2, "", "omoteura: invalid argument: app/nothing/*.rb matches no files\n"])
+    end
+
+    it "exits 2 for the Obsidian format, which is not available yet" do
+      status, _out, err = run_cli("draft", "app/models/user.rb", "--root", root, "--format", "md")
+
+      expect(status).to eq(2)
+      expect(err).to include("not available yet")
+    end
+
+    it "exits 2 for an unknown kind in --only" do
+      status, _out, err = run_cli("draft", "app/models/user.rb", "--root", root, "--only", "methods,routes")
+
+      expect(status).to eq(2)
+      expect(err).to include("--only does not know routes")
+    end
+
+    it "exits 2 when --out names one file for several" do
+      write("app/models/post.rb", "class Post\n  def title\n  end\nend\n")
+
+      status, _out, err = run_cli("draft", "app/models/*.rb", "--root", root, "--out", "x.excalidraw")
+
+      expect(status).to eq(2)
+      expect(err).to include("--out names one file, but 2 files match")
+    end
+  end
+
   it "prints the version" do
     expect(run_cli("version")).to eq([0, "#{Omoteura::VERSION}\n", ""])
   end
