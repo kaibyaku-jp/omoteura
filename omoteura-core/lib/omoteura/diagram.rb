@@ -97,8 +97,9 @@ module Omoteura
       end
     end
 
-    # digest is the SHA-256 of the file as read, for noticing later changes.
-    attr_reader :path, :format, :elements, :digest
+    # data is the whole drawing as read, for writing it back; digest is the
+    # SHA-256 of the file as read, for noticing later changes.
+    attr_reader :path, :format, :elements, :digest, :data
 
     def initialize(path:, format:, data:, digest: nil)
       @path = path

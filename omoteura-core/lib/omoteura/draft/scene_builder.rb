@@ -27,19 +27,23 @@ module Omoteura
       # A word with its trailing space, or one Japanese or Chinese character.
       WRAP_TOKENS = /[\p{Han}\p{Hiragana}\p{Katakana}ー、。]|[^\p{Han}\p{Hiragana}\p{Katakana}ー、。\s]+\s*|\s+/
 
-      def initialize(code_path, updated: (Time.now.to_f * 1000).to_i)
+      # salt varies the ids, for adding to a drawing that has these already.
+      def initialize(code_path, updated: (Time.now.to_f * 1000).to_i, salt: nil)
         @code_path = code_path
         @updated = updated
+        @salt = salt
         @elements = []
       end
 
       # columns are Columns whose items are Boxes, or Headings for a nested
       # group, in reading order.
-      def build(title, columns)
-        add_text("title", title, x: 0, y: 0, size: TITLE_FONT_SIZE)
-        top = TITLE_FONT_SIZE * LINE_HEIGHT + 32
+      # origin is where the title's top left corner goes.
+      def build(title, columns, origin: [0, 0])
+        left, top_edge = origin
+        add_text("title", title, x: left, y: top_edge, size: TITLE_FONT_SIZE)
+        top = top_edge + TITLE_FONT_SIZE * LINE_HEIGHT + 32
         columns.each_with_index do |column, index|
-          x = index * (COLUMN_WIDTH + COLUMN_GAP)
+          x = left + index * (COLUMN_WIDTH + COLUMN_GAP)
           y = top
           if column.heading
             add_text("column #{index}", column.heading.text, x: x, y: y, size: HEADING_FONT_SIZE, link: column.heading.link)
@@ -133,11 +137,15 @@ module Omoteura
 
       # Eight characters, as the Obsidian Excalidraw plugin expects.
       def id_for(key)
-        Digest::SHA256.hexdigest("#{@code_path}\0#{key}")[0, 8]
+        digest(key)[0, 8]
       end
 
       def seed_for(key)
-        Digest::SHA256.hexdigest("#{@code_path}\0#{key}")[0, 8].to_i(16) % 2**31
+        digest(key)[0, 8].to_i(16) % 2**31
+      end
+
+      def digest(key)
+        Digest::SHA256.hexdigest(@salt ? "#{@code_path}\0#{@salt}\0#{key}" : "#{@code_path}\0#{key}")
       end
 
       # An estimate, since the real width depends on the font: Excalidraw

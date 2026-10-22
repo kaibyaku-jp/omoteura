@@ -244,6 +244,80 @@ RSpec.describe Omoteura::Draft do
     end
   end
 
+  describe "merging into the diagram" do
+    let(:spec) do
+      <<~RUBY
+        RSpec.describe User do
+          describe "validations" do
+            it "requires an email" do
+            end
+
+            it "requires a name" do
+            end
+          end
+
+          it "has a display name" do
+          end
+        end
+      RUBY
+    end
+
+    before do
+      write("spec/models/user_spec.rb", spec)
+      draft("spec/models/user_spec.rb")
+    end
+
+    def merge(path, **options)
+      dry_run = options.delete(:dry_run) || false
+      described_class.new(config, **options).merge(path, dry_run: dry_run)
+    end
+
+    def without_updated(path) = elements(path).map { |e| e.except("updated") }
+
+    it "adds only what has no shape yet, to the right, leaving every drawn element as it was" do
+      diagram = "ura/spec/models/user_spec.excalidraw"
+      before = without_updated(diagram)
+      write("spec/models/user_spec.rb", spec.sub("  it \"has a display name\" do", "  it \"downcases emails\" do\n  end\n\n  it \"has a display name\" do"))
+
+      result = merge("spec/models/user_spec.rb")
+
+      after = without_updated(diagram)
+      added = after.drop(before.size)
+      expect(result).to have_attributes(diagram_path: diagram, shape_count: 1, status: :merged)
+      expect(after.take(before.size)).to eq(before)
+      expect(added.select { |e| e["type"] == "text" }.map { |e| e["text"].tr("\n", " ") }).to eq(["Not drawn yet", "downcases emails"])
+      expect(added.map { |e| e["x"] }.min).to be > before.map { |e| e["x"] + e["width"] }.max
+      expect((added + before).map { |e| e["id"] }.uniq.size).to eq(after.size)
+      expect(resolved_links(diagram, "spec/models/user_spec.rb").assoc("downcases emails")).to eq(["downcases emails", 10])
+    end
+
+    it "counts a shape as drawn by its link or its label, wherever it is" do
+      expect(merge("spec/models/user_spec.rb")).to have_attributes(status: :up_to_date, shape_count: 0)
+    end
+
+    it "keeps an Obsidian note's format and the rest of the note" do
+      write("app/models/team.rb", "class Team\n  def name\n  end\nend\n")
+      draft("app/models/team.rb", format: :obsidian)
+      note = File.join(root, "ura/app/models/team.excalidraw.md")
+      File.write(note, File.read(note).sub("# Excalidraw Data", "メモ\n\n# Excalidraw Data"))
+      write("app/models/team.rb", "class Team\n  def name\n  end\n\n  def members\n  end\nend\n")
+
+      expect(merge("app/models/team.rb").status).to eq(:merged)
+      expect(File.read(note)).to include("メモ\n\n# Excalidraw Data", "```compressed-json\n")
+      expect(Omoteura::Diagram.load(note).elements.map(&:label)).to include("name", "members")
+    end
+
+    it "writes nothing on a dry run, and nothing without a diagram" do
+      write("spec/models/post_spec.rb", "RSpec.describe Post do\n  it \"works\" do\n  end\nend\n")
+      write("spec/models/user_spec.rb", spec + "\nRSpec.describe Admin do\n  it \"is new\" do\n  end\nend\n")
+      before = File.read(File.join(root, "ura/spec/models/user_spec.excalidraw"))
+
+      expect(merge("spec/models/user_spec.rb", dry_run: true)).to have_attributes(status: :merged, shape_count: 1)
+      expect(File.read(File.join(root, "ura/spec/models/user_spec.excalidraw"))).to eq(before)
+      expect(merge("spec/models/post_spec.rb")).to have_attributes(status: :no_diagram, diagram_path: nil)
+    end
+  end
+
   describe "the drawing" do
     before { write("app/models/team.rb", "class Team\n  def name\n  end\nend\n") }
 
