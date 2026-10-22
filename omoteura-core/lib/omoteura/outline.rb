@@ -35,7 +35,8 @@ module Omoteura
     private
 
     # Methods after a bare private or protected in the same class, or
-    # defined with private def, are left out.
+    # defined with private def, are left out, and so is initialize, which
+    # Ruby makes private and callers reach through new.
     def public_methods
       statements = @index.statement_entries
       classes = statements.select { |e| e.name.match?(/\A(?:class|module)\b/) }
@@ -43,7 +44,7 @@ module Omoteura
       hidden_names = statements.filter_map { |e| e.name[/\A(?:private|protected)\s+def\s+(?:self\.)?(\w+[?!=]?)/, 1] }
       @index.method_entries.reject do |method|
         owner = classes.select { |c| c.start_line < method.start_line && c.end_line >= method.end_line }.max_by(&:start_line)
-        hidden_names.include?(method.name.delete_prefix("self.")) ||
+        method.name == "initialize" || hidden_names.include?(method.name.delete_prefix("self.")) ||
           hidden_from.any? { |h| h.start_line < method.start_line && (!owner || (h.start_line > owner.start_line && h.end_line <= owner.end_line)) }
       end
     end
