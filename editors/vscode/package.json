@@ -58,6 +58,12 @@
         "command": "omoteura.draft",
         "title": "Draft Diagram",
         "category": "Omoteura"
+      },
+      {
+        "command": "omoteura.linkShape",
+        "title": "Link Shape to Code",
+        "category": "Omoteura",
+        "icon": "$(link)"
       }
     ],
     "menus": {
@@ -65,6 +71,17 @@
         {
           "command": "omoteura.draft",
           "when": "editorLangId == ruby"
+        },
+        {
+          "command": "omoteura.linkShape",
+          "when": "activeCustomEditorId == omoteura.diagram"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "omoteura.linkShape",
+          "when": "activeCustomEditorId == omoteura.diagram",
+          "group": "navigation"
         }
       ]
     },

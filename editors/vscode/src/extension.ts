@@ -66,6 +66,8 @@ export interface OmoteuraApi {
   openShape(uri: vscode.Uri, elementId: string): Promise<void>;
   /** Changes one element of the open diagram as the user would. */
   editDiagram(uri: vscode.Uri, elementId: string, changes: Record<string, unknown>): void;
+  /** Runs Link Shape to Code on one shape of the open diagram. */
+  linkShape(uri: vscode.Uri, elementId: string): Promise<void>;
   /** What the coverage panel shows. */
   coverage(): CoverageReport | undefined;
   readonly onDidRefreshCoverage: vscode.Event<vscode.Uri>;
@@ -409,6 +411,7 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     vscode.commands.registerCommand("omoteura.flip", flip),
     vscode.commands.registerCommand("omoteura.refresh", refreshEverything),
     vscode.commands.registerCommand("omoteura.draft", draft),
+    vscode.commands.registerCommand("omoteura.linkShape", () => diagrams.linkShape()),
     vscode.languages.registerHoverProvider({ language: "ruby", scheme: "file" }, { provideHover }),
     vscode.window.onDidChangeVisibleTextEditors(() => {
       render();
@@ -470,6 +473,7 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     onDidRenderDiagram: diagrams.onDidRender,
     openShape: (uri, elementId) => diagrams.openShape(uri, elementId),
     editDiagram: (uri, elementId, changes) => diagrams.edit(uri, elementId, changes),
+    linkShape: (uri, elementId) => diagrams.linkShape(uri, elementId),
     coverage: () => coverage.report,
     onDidRefreshCoverage: coverage.onDidRefresh,
   };

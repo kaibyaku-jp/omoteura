@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
-import { type DiagramReport, InspectError, inspectDiagram, saveDiagram } from "./inspect.ts";
+import { type DiagramReport, InspectError, inspectDiagram, linkCandidates, saveDiagram } from "./inspect.ts";
 import type { HostMessage, Scene, WebviewMessage } from "./messages.ts";
 import { decorate, targetOf, undecorate } from "./overlay.ts";
 
@@ -49,7 +49,7 @@ interface View extends DiagramViewState {
   shown: { original: Scene; decorated: Scene } | undefined;
 }
 
-const SERIALIZE_TIMEOUT_MS = 10_000;
+const ANSWER_TIMEOUT_MS = 10_000;
 
 /**
  * Shows and edits a drawing with Excalidraw, linked shapes outlined by test
@@ -63,7 +63,8 @@ export class DiagramEditorProvider implements vscode.CustomEditorProvider<Diagra
   readonly #views = new Set<View>();
   readonly #rendered = new vscode.EventEmitter<vscode.Uri>();
   readonly #changed = new vscode.EventEmitter<vscode.CustomDocumentContentChangeEvent<DiagramDocument>>();
-  readonly #requests = new Map<number, (answer: { drawing: string; signature: string }) => void>();
+  // Questions to a webview, answered by a message with the same requestId.
+  readonly #requests = new Map<number, (answer: WebviewMessage) => void>();
   #nextRequest = 0;
 
   readonly onDidRender = this.#rendered.event;
@@ -161,6 +162,69 @@ export class DiagramEditorProvider implements vscode.CustomEditorProvider<Diagra
     }
   }
 
+  /**
+   * Links a shape to code chosen from the places in the code file the
+   * diagram is attached to: the shape given, or else the one selected in
+   * the active diagram view. The change is unsaved, like any other edit.
+   */
+  async linkShape(uri?: vscode.Uri, elementId?: string): Promise<void> {
+    const view = uri ? this.#viewOfUri(uri) : [...this.#views].find((v) => v.panel.active);
+    if (!view) {
+      void vscode.window.showInformationMessage("Open a diagram to link one of its shapes to code.");
+      return;
+    }
+    let shape: { id: string; link: string | null } | undefined;
+    if (elementId) {
+      shape = { id: elementId, link: null };
+    } else {
+      const answer = await this.#ask(view, "selection");
+      const selected = answer.type === "selected" ? answer.elements : [];
+      if (selected.length !== 1) {
+        void vscode.window.showInformationMessage("Select one shape to link it to code.");
+        return;
+      }
+      shape = selected[0];
+    }
+    const folder = vscode.workspace.getWorkspaceFolder(view.document.uri);
+    const codePath = view.report?.attached_to[0];
+    if (!folder || !shape || !codePath) {
+      void vscode.window.showWarningMessage(
+        "This diagram is not attached to any code. Attach it by its path under the diagrams folder, a magic comment or .omoteura.yml.",
+      );
+      return;
+    }
+    let candidates: Awaited<ReturnType<typeof linkCandidates>>;
+    try {
+      candidates = await linkCandidates(
+        this.#command(view.document.uri),
+        folder.uri.fsPath,
+        vscode.Uri.joinPath(folder.uri, codePath).fsPath,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      void vscode.window.showErrorMessage(`Omoteura could not list the places in ${codePath}: ${message}`);
+      return;
+    }
+    const current = shape.link;
+    const items: (vscode.QuickPickItem & { link: string | null })[] = candidates.map((candidate) => ({
+      label: candidate.label,
+      description: `${candidate.kind} · line ${candidate.line}`,
+      detail: candidate.link === current ? `${candidate.link} (current)` : candidate.link,
+      link: candidate.link,
+    }));
+    if (current) {
+      items.push({ label: "Remove the Link", description: current, link: null });
+    }
+    const pick = await vscode.window.showQuickPick(items, {
+      placeHolder: `Link the shape to a place in ${codePath}`,
+      matchOnDescription: true,
+      matchOnDetail: true,
+    });
+    if (pick) {
+      this.#post(view, { type: "edit", elementId: shape.id, changes: { link: pick.link } });
+    }
+  }
+
   /** Changes one element in the view showing uri as the user would, for the integration tests. */
   edit(uri: vscode.Uri, elementId: string, changes: Record<string, unknown>): void {
     const view = this.#viewOfUri(uri);
@@ -205,7 +269,8 @@ export class DiagramEditorProvider implements vscode.CustomEditorProvider<Diagra
         this.#changed.fire({ document: view.document });
         break;
       case "serialized":
-        this.#requests.get(message.requestId)?.({ drawing: message.drawing, signature: message.signature });
+      case "selected":
+        this.#requests.get(message.requestId)?.(message);
         this.#requests.delete(message.requestId);
         break;
       case "openLink":
@@ -264,24 +329,32 @@ export class DiagramEditorProvider implements vscode.CustomEditorProvider<Diagra
 
   /** The drawing as Excalidraw saves it, without the status outlines. */
   async #drawing(view: View): Promise<{ drawing: string; signature: string }> {
-    const answer = await new Promise<{ drawing: string; signature: string }>((resolve, reject) => {
-      const requestId = ++this.#nextRequest;
-      const timer = setTimeout(() => {
-        this.#requests.delete(requestId);
-        reject(new Error("The diagram view did not hand over the drawing in time."));
-      }, SERIALIZE_TIMEOUT_MS);
-      this.#requests.set(requestId, (result) => {
-        clearTimeout(timer);
-        resolve(result);
-      });
-      this.#post(view, { type: "serialize", requestId });
-    });
+    const answer = await this.#ask(view, "serialize");
+    if (answer.type !== "serialized") {
+      throw new Error("The diagram view answered with something other than the drawing.");
+    }
     if (!view.shown) {
       return answer;
     }
     const edited = JSON.parse(answer.drawing) as Scene;
     const drawing = undecorate(edited, view.shown.original, view.shown.decorated);
     return { drawing: JSON.stringify(drawing), signature: answer.signature };
+  }
+
+  /** Sends the webview a question and resolves with its answer. */
+  #ask(view: View, type: "serialize" | "selection"): Promise<WebviewMessage> {
+    return new Promise((resolve, reject) => {
+      const requestId = ++this.#nextRequest;
+      const timer = setTimeout(() => {
+        this.#requests.delete(requestId);
+        reject(new Error("The diagram view did not answer in time."));
+      }, ANSWER_TIMEOUT_MS);
+      this.#requests.set(requestId, (answer) => {
+        clearTimeout(timer);
+        resolve(answer);
+      });
+      this.#post(view, { type, requestId });
+    });
   }
 
   async #write(document: DiagramDocument, destination: vscode.Uri): Promise<void> {

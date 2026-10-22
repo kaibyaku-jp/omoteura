@@ -19,6 +19,10 @@ This extension shows those links where you write code.
 - **Flip between code and diagram** with `⌥⌘U` (`Ctrl+Alt+U` on Windows and
   Linux) or the status bar item. In a file without a diagram, it offers to
   create an empty one where Omoteura looks for it.
+- **Link shapes to code by picking.** Select a shape and run **Omoteura:
+  Link Shape to Code**, or press the link button in the editor's title bar,
+  and choose from the examples, declarations and methods of the code the
+  diagram is attached to.
 - **Draw in VS Code.** `.excalidraw` and Obsidian `.excalidraw.md` files open
   in Excalidraw. Linked shapes are outlined in the color of their test status,
   broken links dashed; the outlines are never saved. Clicking a shape's link

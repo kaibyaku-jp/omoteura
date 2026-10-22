@@ -6,6 +6,7 @@ import {
   InspectError,
   inspect,
   inspectDiagram,
+  linkCandidates,
   parseDiagramReport,
   parseReport,
   type Runner,
@@ -210,5 +211,19 @@ describe("draftDiagram", () => {
       draftDiagram(["omoteura"], "/p", "/p/a.rb", { merge: false, format: "excalidraw" }, run),
       /does not understand/,
     );
+  });
+});
+
+describe("linkCandidates", () => {
+  it("lists the places in the code file with their links", async () => {
+    let args: string[] = [];
+    const candidate = { link: "omoteura:#display_name", label: "display_name", kind: "methods", line: 2 };
+    const run: Runner = async (_program, given) => {
+      args = given;
+      return JSON.stringify({ version: 1, code_path: "app/models/user.rb", candidates: [candidate] });
+    };
+
+    assert.deepEqual(await linkCandidates(["omoteura"], "/project", "/project/app/models/user.rb", run), [candidate]);
+    assert.deepEqual(args, ["links", "/project/app/models/user.rb", "--root", "/project"]);
   });
 });
