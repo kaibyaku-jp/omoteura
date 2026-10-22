@@ -17,22 +17,22 @@ RSpec.describe Omoteura::Diagram do
     end
 
     it "skips deleted elements" do
-      expect(diagram.elements.map(&:id)).not_to include("removed")
+      expect(diagram.elements.map(&:id)).not_to include("Removed1")
     end
 
     it "labels containers with their bound text" do
-      expect(diagram.elements.find { |e| e.id == "email-unique" }.label).to eq("email 一意 🔑")
+      expect(diagram.elements.find { |e| e.id == "EmailBox" }.label).to eq("email 一意 🔑")
     end
 
     it "keeps the whole scene, deleted elements included, for showing the drawing" do
       expect(diagram.scene.keys).to eq(%w[elements appState files])
-      expect(diagram.scene["elements"].map { |e| e["id"] }).to include("removed")
+      expect(diagram.scene["elements"].map { |e| e["id"] }).to include("Removed1")
       expect(diagram.scene["appState"]).to eq("viewBackgroundColor" => "#ffffff")
     end
 
     it "returns only elements with omoteura: links as linked elements" do
       expect(diagram.linked_elements.map { |e| [e.id, e.link] })
-        .to eq([["email-unique", "omoteura:#email 一意であること"]])
+        .to eq([["EmailBox", "omoteura:#email 一意であること"]])
     end
   end
 
