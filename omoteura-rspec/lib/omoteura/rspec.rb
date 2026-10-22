@@ -6,3 +6,5 @@ module Omoteura
   module RSpec
   end
 end
+
+require "omoteura/rspec/formatter"
