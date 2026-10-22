@@ -107,10 +107,15 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     return document.languageId === "ruby" && document.uri.scheme === "file";
   }
 
-  async function refresh(document: vscode.TextDocument): Promise<void> {
+  /**
+   * Inspects document and shows the result, unless a newer inspection has
+   * started meanwhile. Resolves with this inspection's own report either
+   * way, for a caller that needs it now.
+   */
+  async function refresh(document: vscode.TextDocument): Promise<Report | undefined> {
     const folder = vscode.workspace.getWorkspaceFolder(document.uri);
     if (!folder || !isCode(document)) {
-      return;
+      return undefined;
     }
     const key = document.uri.toString();
     const inspection = ++inspections;
@@ -118,22 +123,26 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     try {
       const report = await inspect(commandFor(document.uri), folder.uri.fsPath, document.uri.fsPath);
       if (latest.get(key) !== inspection) {
-        return;
+        return report;
       }
       reports.set(key, report);
       errors.delete(key);
+      render();
+      refreshed.fire(document.uri);
+      return report;
     } catch (error) {
       if (latest.get(key) !== inspection) {
-        return;
+        return undefined;
       }
       const message = error instanceof InspectError || error instanceof Error ? error.message : String(error);
       reports.delete(key);
       errors.set(key, message);
       log.error(`Could not inspect ${vscode.workspace.asRelativePath(document.uri)}: ${message}`);
       announce(message);
+      render();
+      refreshed.fire(document.uri);
+      return undefined;
     }
-    render();
-    refreshed.fire(document.uri);
   }
 
   function announce(error: string): void {
@@ -248,8 +257,7 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     if (!folder) {
       return;
     }
-    await refresh(document);
-    const report = reports.get(document.uri.toString());
+    const report = await refresh(document);
     if (!report) {
       void vscode.window.showErrorMessage("Omoteura could not inspect this file. See the Omoteura output for details.");
       return;
@@ -288,8 +296,7 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
       void vscode.window.showInformationMessage("Open a Ruby file in the workspace to draft its diagram.");
       return;
     }
-    await refresh(document);
-    const attachment = reports.get(document.uri.toString())?.attachment;
+    const attachment = (await refresh(document))?.attachment;
     let merge = false;
     if (attachment && !attachment.missing) {
       const pick = await vscode.window.showQuickPick(
