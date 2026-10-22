@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Shape } from "../../src/inspect.ts";
 import type { Scene } from "../../src/messages.ts";
-import { decorate, OUTLINE_COLORS, targetOf } from "../../src/overlay.ts";
+import { decorate, OUTLINE_COLORS, targetOf, undecorate } from "../../src/overlay.ts";
 
 const scene: Scene = {
   elements: [
@@ -46,6 +46,50 @@ describe("decorate", () => {
     assert.deepEqual(decorated.elements.slice(1), scene.elements.slice(1));
     assert.equal(decorated.appState, scene.appState);
     assert.equal(scene.elements[0]?.strokeColor, "#1e1e1e");
+  });
+});
+
+describe("undecorate", () => {
+  const shapes = [shape("box", { test: failed }), shape("gone", { target: null, error: "broken" })];
+  const decorated = decorate(scene, shapes);
+
+  it("gives back the original styles of an untouched drawing", () => {
+    assert.deepEqual(undecorate(decorated, scene, decorated), scene);
+  });
+
+  it("keeps what the user changed, moving or restyling a decorated shape", () => {
+    const edited: Scene = {
+      ...decorated,
+      elements: decorated.elements.map((element) =>
+        element.id === "box"
+          ? { ...element, x: 40, strokeColor: "#e03131" }
+          : element.id === "gone"
+            ? { ...element, strokeStyle: "solid" }
+            : element,
+      ),
+    };
+
+    const [box, , gone] = undecorate(edited, scene, decorated).elements;
+
+    assert.deepEqual([box?.x, box?.strokeColor, box?.strokeWidth], [40, "#e03131", 1]);
+    assert.deepEqual([gone?.strokeColor, gone?.strokeStyle], ["#1e1e1e", "solid"]);
+  });
+
+  it("leaves new elements and those decorate did not change alone", () => {
+    const added = { id: "new", type: "ellipse", strokeColor: OUTLINE_COLORS.failed };
+    const edited: Scene = { ...decorated, elements: [...decorated.elements, added] };
+
+    const restored = undecorate(edited, scene, decorated).elements;
+
+    assert.equal(restored.at(-1), added);
+    assert.deepEqual(restored[1], scene.elements[1]);
+  });
+
+  it("drops a style the original did not have", () => {
+    const bare: Scene = { ...scene, elements: [{ id: "box", type: "rectangle" }] };
+    const outlined = decorate(bare, [shape("box")]);
+
+    assert.deepEqual(undecorate(outlined, bare, outlined).elements, bare.elements);
   });
 });
 
