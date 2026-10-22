@@ -16,6 +16,7 @@ module Omoteura
         check     Report broken omoteura: links and diagrams not attached to code
         inspect   Print what an editor needs about one code file, as JSON
         diagram   Print what an editor needs to show one diagram, as JSON
+        coverage  Print which declarations and methods of one file its specs cover, as JSON
         draft     Draft a diagram from code, as a starting point to draw on
         save      Save a drawing an editor changed, read as JSON from stdin
         version   Print the version
@@ -33,8 +34,9 @@ module Omoteura
       command, *args = argv
       case command
       when "check" then check(args)
-      when "inspect" then editor_report(args, "inspect FILE") { |inspector, file| inspector.report(file) }
-      when "diagram" then editor_report(args, "diagram FILE") { |inspector, file| inspector.diagram_report(file) }
+      when "inspect" then editor_report(args, "inspect FILE") { |config, results, file| Inspector.new(config, results: results).report(file) }
+      when "diagram" then editor_report(args, "diagram FILE") { |config, results, file| Inspector.new(config, results: results).diagram_report(file) }
+      when "coverage" then editor_report(args, "coverage FILE") { |config, results, file| CoverageReport.new(config, results: results).report(file) }
       when "draft" then draft(args)
       when "save" then save(args)
       when "version", "--version", "-v"
@@ -97,7 +99,7 @@ module Omoteura
       raise OptionParser::InvalidArgument, "#{args.first} is outside #{config.root}" unless config.expand(file)
 
       results = TestResults.load(File.expand_path(options[:results], config.root))
-      @out.puts JSON.generate(yield(Inspector.new(config, results: results), file))
+      @out.puts JSON.generate(yield(config, results, file))
       0
     rescue OptionParser::ParseError, Config::Invalid, TestResults::Invalid => e
       @err.puts "omoteura: #{e.message}"

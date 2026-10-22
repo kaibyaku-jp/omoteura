@@ -138,6 +138,17 @@ RSpec.describe Omoteura::CLI do
     end
   end
 
+  describe "coverage" do
+    it "prints which declarations and methods the file's specs cover" do
+      write("spec/models/user_spec.rb", "RSpec.describe User do\n  describe \"#display_name\" do\n    it \"is set\" do\n    end\n  end\nend\n")
+
+      status, out, err = run_cli("coverage", File.join(root, "app/models/user.rb"), "--root", root)
+
+      expect([status, err]).to eq([0, ""])
+      expect(JSON.parse(out)["items"].map { |item| [item["name"], item["covered"]] }).to eq([["display_name", true]])
+    end
+  end
+
   describe "diagram" do
     it "prints the editor data for a diagram as JSON" do
       write("ura/app/models/user.excalidraw", drawing_with_link("omoteura:#display_name"))
