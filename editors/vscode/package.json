@@ -86,6 +86,7 @@
     "typecheck": "tsc",
     "lint": "biome check .",
     "test": "node --test \"test/unit/**/*.test.ts\"",
+    "test:integration": "node esbuild.mjs --tests && node test/integration/prepare.mjs && node test/integration/run.mjs",
     "package": "vsce package --no-dependencies"
   },
   "devDependencies": {
