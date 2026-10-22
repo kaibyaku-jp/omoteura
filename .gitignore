@@ -8,3 +8,4 @@
 *.gem
 .rspec_status
 .omoteura.local.yml
+/gemfiles/*.gemfile.lock

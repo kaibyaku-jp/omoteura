@@ -21,7 +21,13 @@ bundle exec rake          # specs and lint (standard)
 bundle exec rake package  # build the four gems into pkg/
 ```
 
-CI runs the same commands on Ruby 3.4 and 4.0.
+CI runs the same commands on Ruby 3.4 and 4.0. To run the specs against the
+oldest rspec-core that omoteura-rspec supports, point Bundler at its Gemfile:
+
+```sh
+BUNDLE_GEMFILE=gemfiles/rspec_3_12.gemfile bundle install
+BUNDLE_GEMFILE=gemfiles/rspec_3_12.gemfile bundle exec rake spec
+```
 
 ## Layout
 
