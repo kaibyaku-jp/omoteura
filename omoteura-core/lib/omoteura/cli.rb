@@ -107,13 +107,14 @@ module Omoteura
     end
 
     def draft(args)
-      options = {root: Dir.pwd, only: Draft::CATEGORIES, out: nil, format: "json", dry_run: false}
+      options = {root: Dir.pwd, only: Draft::CATEGORIES, out: nil, format: "json", dry_run: false, merge: false}
       parser = OptionParser.new do |o|
         o.banner = "Usage: omoteura draft FILE_OR_GLOB... [options]"
         o.on("--root DIR", "Project root (default: the current directory)") { |dir| options[:root] = dir }
         o.on("--out PATH", "Write here instead, relative to the root: a file or a directory") { |path| options[:out] = path }
         o.on("--format FORMAT", %w[json md], "json for .excalidraw (default), or md for an Obsidian .excalidraw.md") { |f| options[:format] = f }
         o.on("--only LIST", Array, "For code other than specs, draw only: #{Draft::CATEGORIES.join(", ")}") { |list| options[:only] = list }
+        o.on("--merge", "Add what the file's diagram has no shape for yet, to the right of it") { options[:merge] = true }
         o.on("--dry-run", "Show what would be written without writing") { options[:dry_run] = true }
         o.on("-h", "--help", "Show this help") do
           @out.puts o
@@ -124,6 +125,8 @@ module Omoteura
       raise OptionParser::InvalidArgument, "expected at least one FILE" if args.empty?
       unknown = options[:only] - Draft::CATEGORIES
       raise OptionParser::InvalidArgument, "--only does not know #{unknown.join(", ")}" unless unknown.empty?
+
+      raise OptionParser::InvalidArgument, "--merge adds to the diagram in place, so it takes no --out" if options[:merge] && options[:out]
 
       config = Config.load(options[:root])
       paths = draft_paths(args, config)
@@ -137,9 +140,12 @@ module Omoteura
       end
 
       drafter = Draft.new(config, only: options[:only], out: options[:out], format: format)
-      paths.each { |path| @out.puts draft_line(drafter.draft(path, dry_run: options[:dry_run]), options[:dry_run]) }
+      paths.each do |path|
+        result = options[:merge] ? drafter.merge(path, dry_run: options[:dry_run]) : drafter.draft(path, dry_run: options[:dry_run])
+        @out.puts draft_line(result, options[:dry_run])
+      end
       0
-    rescue OptionParser::ParseError, Config::Invalid => e
+    rescue OptionParser::ParseError, Config::Invalid, Writer::Conflict, Diagram::ParseError, Diagram::NotADiagram, Resolver::InvalidPath, MagicComment::Duplicate => e
       @err.puts "omoteura: #{e.message}"
       2
     end
@@ -200,6 +206,9 @@ module Omoteura
         "#{verb} #{result.diagram_path} (#{shapes}) beside the diagram #{result.code_path} already has; copy what you need, then delete it"
       when :exists then "skipped #{result.code_path}: #{result.diagram_path} already exists; delete it to draft again"
       when :empty then "skipped #{result.code_path}: nothing to draw"
+      when :merged then "#{dry_run ? "would add" : "added"} #{shapes} to #{result.diagram_path}"
+      when :up_to_date then "skipped #{result.code_path}: #{result.diagram_path} already has a shape for everything"
+      when :no_diagram then "skipped #{result.code_path}: no diagram to merge into; draft without --merge"
       end
     end
 

@@ -205,6 +205,23 @@ RSpec.describe Omoteura::CLI do
       expect(err).to include("--out x.excalidraw does not end in .excalidraw.md, as --format md writes")
     end
 
+    it "adds what the diagram lacks with --merge, and says when nothing does" do
+      run_cli("draft", "app/models/user.rb", "--root", root)
+      write("app/models/user.rb", "class User\n  def display_name\n  end\n\n  def initials\n  end\nend\n")
+
+      expect(run_cli("draft", "app/models/user.rb", "--root", root, "--merge"))
+        .to eq([0, "added 1 shape to ura/app/models/user.excalidraw\n", ""])
+      expect(run_cli("draft", "app/models/user.rb", "--root", root, "--merge"))
+        .to eq([0, "skipped app/models/user.rb: ura/app/models/user.excalidraw already has a shape for everything\n", ""])
+    end
+
+    it "exits 2 for --merge with --out" do
+      status, _out, err = run_cli("draft", "app/models/user.rb", "--root", root, "--merge", "--out", "x")
+
+      expect(status).to eq(2)
+      expect(err).to include("--merge adds to the diagram in place, so it takes no --out")
+    end
+
     it "exits 2 for an unknown kind in --only" do
       status, _out, err = run_cli("draft", "app/models/user.rb", "--root", root, "--only", "methods,routes")
 

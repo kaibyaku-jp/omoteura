@@ -146,6 +146,16 @@ reminds you to delete it. `--format md` writes an Obsidian `.excalidraw.md`
 note instead, and `--dry-run`, `--only methods,validations` and `--out DIR`
 are available too.
 
+As the code grows, `--merge` adds what the diagram has no shape for yet, in
+columns to the right of everything drawn. A shape counts as drawn when its
+link points at the same code or its label is the same, and nothing drawn is
+moved or removed:
+
+```sh
+% bundle exec omoteura draft spec/models/user_spec.rb --merge
+added 2 shapes to ura/spec/models/user_spec.excalidraw
+```
+
 
 ## Linking Shapes to Code
 
