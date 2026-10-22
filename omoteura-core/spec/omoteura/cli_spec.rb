@@ -181,11 +181,17 @@ RSpec.describe Omoteura::CLI do
       expect(run_cli("draft", "app/nothing/*.rb", "--root", root)).to eq([2, "", "omoteura: invalid argument: app/nothing/*.rb matches no files\n"])
     end
 
-    it "exits 2 for the Obsidian format, which is not available yet" do
-      status, _out, err = run_cli("draft", "app/models/user.rb", "--root", root, "--format", "md")
+    it "writes an Obsidian note with --format md" do
+      expect(run_cli("draft", "app/models/user.rb", "--root", root, "--format", "md"))
+        .to eq([0, "wrote ura/app/models/user.excalidraw.md (1 shape)\n", ""])
+      expect(Omoteura::Diagram.load(File.join(root, "ura/app/models/user.excalidraw.md")).format).to eq(:obsidian)
+    end
+
+    it "exits 2 when --out names a file of the other format" do
+      status, _out, err = run_cli("draft", "app/models/user.rb", "--root", root, "--format", "md", "--out", "x.excalidraw")
 
       expect(status).to eq(2)
-      expect(err).to include("not available yet")
+      expect(err).to include("--out x.excalidraw does not end in .excalidraw.md, as --format md writes")
     end
 
     it "exits 2 for an unknown kind in --only" do

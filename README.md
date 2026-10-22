@@ -143,8 +143,9 @@ results show up straight away. Then make it yours: move, delete, annotate.
 
 A draft never replaces a diagram. When the file already has one, it goes beside
 it as `user_spec.draft.excalidraw` for you to copy from, and `omoteura check`
-reminds you to delete it. `--dry-run`, `--only methods,validations` and
-`--out DIR` are available; Obsidian's `.excalidraw.md` format is coming.
+reminds you to delete it. `--format md` writes an Obsidian `.excalidraw.md`
+note instead, and `--dry-run`, `--only methods,validations` and `--out DIR`
+are available too.
 
 
 ## Linking Shapes to Code

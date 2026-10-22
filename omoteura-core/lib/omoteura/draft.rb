@@ -12,7 +12,8 @@ module Omoteura
   #
   # A draft is a starting point for a hand-drawn diagram. It never
   # replaces one: when the file already has a diagram, the draft goes
-  # beside it as <name>.draft.excalidraw.
+  # beside it as <name>.draft.excalidraw, or .draft.excalidraw.md when
+  # drafting for Obsidian.
   class Draft
     CATEGORIES = %w[validations associations callbacks scopes enums methods].freeze
     DECLARATIONS = {
@@ -23,15 +24,20 @@ module Omoteura
       "enums" => /\Aenum\b/
     }.freeze
     FORMAT_SOURCE = "https://github.com/kaibyaku-jp/omoteura"
+    EXTENSIONS = {excalidraw: ".excalidraw", obsidian: ".excalidraw.md"}.freeze
 
     # status is :written, :draft (written beside an existing diagram),
     # :exists (a previous draft is in the way) or :empty (nothing to draw).
     Result = Data.define(:code_path, :diagram_path, :shape_count, :status)
 
-    def initialize(config, only: CATEGORIES, out: nil)
+    # format is :excalidraw for a .excalidraw file or :obsidian for an
+    # Obsidian Excalidraw plugin note.
+    def initialize(config, only: CATEGORIES, out: nil, format: :excalidraw)
       @config = config
       @only = only
       @out = out
+      @format = format
+      @extension = EXTENSIONS.fetch(format)
       @resolver = Resolver.new(config)
       @link_resolver = LinkResolver.new(config)
     end
@@ -151,16 +157,16 @@ module Omoteura
     # root, names a file or a directory instead. Nothing is ever replaced.
     def destination(code_path)
       if @out
-        path = @out.end_with?(".excalidraw") ? @out : File.join(@out, File.basename(base_name(code_path)) + ".excalidraw")
+        path = @out.end_with?(@extension) ? @out : File.join(@out, File.basename(base_name(code_path)) + @extension)
         return [path, File.exist?(File.expand_path(path, @config.root)) ? :exists : :written]
       end
 
       base = File.join(@config.diagrams_dir, base_name(code_path))
       attachment = @resolver.resolve(code_path)
-      taken = attachment || [".excalidraw", ".excalidraw.md"].any? { |ext| File.exist?(File.join(@config.root, base + ext)) }
-      return [base + ".excalidraw", :written] unless taken
+      taken = attachment || EXTENSIONS.each_value.any? { |ext| File.exist?(File.join(@config.root, base + ext)) }
+      return [base + @extension, :written] unless taken
 
-      path = base + ".draft.excalidraw"
+      path = base + ".draft" + @extension
       [path, File.exist?(File.join(@config.root, path)) ? :exists : :draft]
     end
 
@@ -172,14 +178,14 @@ module Omoteura
       full = File.expand_path(diagram_path, @config.root)
       FileUtils.mkdir_p(File.dirname(full))
       scene = {
-        type: "excalidraw",
-        version: 2,
-        source: FORMAT_SOURCE,
-        elements: elements,
-        appState: {viewBackgroundColor: "#ffffff", gridSize: nil},
-        files: {}
+        "type" => "excalidraw",
+        "version" => 2,
+        "source" => FORMAT_SOURCE,
+        "elements" => elements,
+        "appState" => {"viewBackgroundColor" => "#ffffff", "gridSize" => nil},
+        "files" => {}
       }
-      File.write(full, JSON.pretty_generate(scene) + "\n")
+      File.write(full, (@format == :obsidian) ? Obsidian.render(scene) : JSON.pretty_generate(scene) + "\n")
     end
   end
 end

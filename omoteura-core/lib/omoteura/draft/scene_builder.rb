@@ -131,8 +131,9 @@ module Omoteura
         }
       end
 
+      # Eight characters, as the Obsidian Excalidraw plugin expects.
       def id_for(key)
-        Digest::SHA256.hexdigest("#{@code_path}\0#{key}")[0, 20]
+        Digest::SHA256.hexdigest("#{@code_path}\0#{key}")[0, 8]
       end
 
       def seed_for(key)
