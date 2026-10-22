@@ -1,12 +1,26 @@
 name: CI
 
+# Each job is billed in whole minutes, so checks share a job where they can,
+# and workflows run only when what they test changed: the VS Code extension
+# and the Nix shell have workflows of their own.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "editors/vscode/**"
+      - "docs/**"
+      - ".github/workflows/vscode.yml"
+      - ".github/workflows/nix.yml"
   pull_request:
-  # Daily, to notice breakage from new releases of Ruby or dependencies.
+    paths-ignore:
+      - "editors/vscode/**"
+      - "docs/**"
+      - ".github/workflows/vscode.yml"
+      - ".github/workflows/nix.yml"
+  # Weekly, to notice breakage from new releases of Ruby or dependencies.
   schedule:
-    - cron: "17 21 * * *"
+    - cron: "17 21 * * 1"
+  workflow_dispatch:
 
 permissions: {}
 
@@ -16,7 +30,7 @@ concurrency:
 
 jobs:
   test:
-    name: test (${{ matrix.ruby }}, ${{ matrix.gemfile }})${{ matrix.experimental && ' [experimental]' || '' }}
+    name: test (${{ matrix.ruby }}, ${{ matrix.gemfile }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -29,15 +43,10 @@ jobs:
           # The oldest rspec-core that omoteura-rspec supports.
           - ruby: "3.4"
             gemfile: gemfiles/rspec_3_12.gemfile
-          # An early warning only; a failure here does not fail the build.
-          - ruby: head
-            gemfile: gemfiles/latest.gemfile
-            experimental: true
-    continue-on-error: ${{ matrix.experimental == true }}
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
-      # Precompiled native gems often do not declare support for ruby-head yet.
-      BUNDLE_FORCE_RUBY_PLATFORM: ${{ matrix.experimental == true }}
+      # Lint, dogfooding and packaging need to run once, not per Ruby.
+      MAIN: ${{ matrix.ruby == '3.4' && matrix.gemfile == 'Gemfile' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -47,66 +56,31 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - run: bundle exec rake spec
+      - if: env.MAIN == 'true'
+        run: bundle exec rake standard
+      - if: env.MAIN == 'true'
+        run: bundle exec omoteura check --format github
+      - if: env.MAIN == 'true'
+        run: bundle exec rake package
 
-  lint:
+  # An early warning only, on the weekly run; a failure here does not fail the build.
+  ruby-head:
+    name: test (head, gemfiles/latest.gemfile) [experimental]
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    continue-on-error: true
+    env:
+      BUNDLE_GEMFILE: gemfiles/latest.gemfile
+      # Precompiled native gems often do not declare support for ruby-head yet.
+      BUNDLE_FORCE_RUBY_PLATFORM: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ruby/setup-ruby@b1da4809b005e0178fe08a1d57317bffc00b7b4c # v1.332.0
         with:
-          ruby-version: "3.4"
+          ruby-version: head
           bundler-cache: true
-      - run: bundle exec rake standard
-      - run: bundle exec omoteura check --format github
-      - run: bundle exec rake package
-
-  nix:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
-      - run: nix flake check
-      - run: nix develop --command ruby -v
-
-  vscode:
-    name: vscode (${{ matrix.vscode }})
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        # The oldest version package.json supports, and the current one.
-        vscode: ["1.95.0", stable]
-    defaults:
-      run:
-        working-directory: editors/vscode
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      # The integration tests run the omoteura gem from this checkout.
-      - uses: ruby/setup-ruby@b1da4809b005e0178fe08a1d57317bffc00b7b4c # v1.332.0
-        with:
-          ruby-version: "3.4"
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: editors/vscode/package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: xvfb-run -a npm run test:integration
-        env:
-          VSCODE_VERSION: ${{ matrix.vscode }}
-      - run: npx vsce package --no-dependencies
+      - run: bundle exec rake spec
