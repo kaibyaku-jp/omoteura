@@ -102,6 +102,14 @@ RSpec.describe Omoteura::SourceIndex do
     end
   end
 
+  describe "#line_count" do
+    it "counts a last line without a newline" do
+      expect(described_class.new("a\nb").line_count).to eq(2)
+      expect(described_class.new("a\nb\n").line_count).to eq(2)
+      expect(described_class.new("").line_count).to eq(0)
+    end
+  end
+
   describe "#statement_entries" do
     it "records the first line of every statement with its full line range" do
       index = described_class.new(<<~RUBY)
@@ -115,6 +123,12 @@ RSpec.describe Omoteura::SourceIndex do
         entry(:statement, "class User", 1, 4),
         entry(:statement, "validates :email, presence: true,", 2, 3)
       ])
+    end
+
+    it "names statements after multibyte text and trailing comments correctly" do
+      index = described_class.new("# 日本語のコメント\nputs \"表と裏\"   \r\nx = 1 # note\n")
+
+      expect(index.statement_entries.map(&:name)).to eq(["puts \"表と裏\"", "x = 1 # note"])
     end
   end
 end

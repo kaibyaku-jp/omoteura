@@ -18,10 +18,10 @@ module Omoteura
     end
 
     def initialize(source)
-      visitor = Visitor.new
+      visitor = Visitor.new(source)
       Prism.parse(source).value.accept(visitor)
       @entries = visitor.entries.freeze
-      @line_count = source.lines.size
+      @line_count = source.count("\n") + ((source.empty? || source.end_with?("\n")) ? 0 : 1)
     end
 
     def spec_entries
@@ -44,8 +44,9 @@ module Omoteura
 
       attr_reader :entries
 
-      def initialize
-        super
+      def initialize(source)
+        super()
+        @source = source
         @entries = []
         # Enclosing example groups. A nil description means a parent could
         # not be read statically, so nothing below it has a known one.
@@ -53,15 +54,12 @@ module Omoteura
       end
 
       def visit_statements_node(node)
-        node.body.each do |statement|
-          first_line = statement.location.slice.lines.first.strip
-          add(:statement, first_line, statement)
-        end
+        node.body.each { |statement| add(:statement, first_line(statement), statement) }
         super
       end
 
       def visit_def_node(node)
-        name = node.receiver.is_a?(Prism::SelfNode) ? "self.#{node.name}" : node.name.to_s
+        name = node.receiver.is_a?(Prism::SelfNode) ? "self.#{node.name}" : node.name.name
         add(:method, name, node)
         super
       end
@@ -83,6 +81,17 @@ module Omoteura
       end
 
       private
+
+      # Cuts the statement's first line out of the source by byte offsets.
+      # Slicing the whole statement would copy most of the file for every
+      # class or describe block, and again for each level of nesting.
+      def first_line(node)
+        start = node.location.start_offset
+        stop = @source.byteindex("\n", start) || @source.bytesize
+        line = @source.byteslice(start, stop - start)
+        line.rstrip!
+        line
+      end
 
       def add(kind, name, node)
         location = node.location
