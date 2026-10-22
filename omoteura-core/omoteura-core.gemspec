@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
 
-  spec.files = Dir["lib/**/*.rb", "exe/*"]
+  spec.files = Dir.glob(["lib/**/*.rb", "exe/*", "LICENSE"], base: __dir__)
   spec.bindir = "exe"
   spec.executables = ["omoteura"]
 end

@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
 
-  spec.files = Dir["lib/**/*.rb", "README.md", "LICENSE", "CHANGELOG.md"]
+  spec.files = Dir.glob(["lib/**/*.rb", "README.md", "LICENSE", "CHANGELOG.md"], base: __dir__)
 
   spec.add_dependency "omoteura-core", Omoteura::VERSION
   spec.add_dependency "omoteura-rails", Omoteura::VERSION
