@@ -24,3 +24,8 @@ task :package do
     Dir.chdir(dir) { sh "gem", "build", "#{name}.gemspec", "--output", File.join(pkg, "#{name}-#{Omoteura::VERSION}.gem") }
   end
 end
+
+desc "Report allocations and time of the main code paths (set LZ_STRING_INPUT to include the decoder)"
+task :bench do
+  ruby "-Iomoteura-core/lib", "benchmark/allocations.rb"
+end

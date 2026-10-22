@@ -29,6 +29,13 @@ BUNDLE_GEMFILE=gemfiles/rspec_3_12.gemfile bundle install
 BUNDLE_GEMFILE=gemfiles/rspec_3_12.gemfile bundle exec rake spec
 ```
 
+## Performance
+
+Omoteura runs over every Ruby file in a project, so keep an eye on
+allocations as well as time. `bundle exec rake bench` reports both for
+the main code paths on large generated inputs; include its before and
+after numbers in pull requests that touch those paths.
+
 ## Layout
 
 | directory | gem |

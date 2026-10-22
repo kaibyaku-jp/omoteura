@@ -10,3 +10,4 @@ gemspec path: "omoteura-rspec"
 gem "rake"
 gem "rspec", "~> 3.12"
 gem "standard", "~> 1.50"
+gem "memory_profiler", require: false
