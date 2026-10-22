@@ -1,7 +1,15 @@
 import * as vscode from "vscode";
 import { CoveragePanel } from "./coveragePanel.ts";
 import { DIAGRAM_VIEW_TYPE, DiagramEditorProvider, type DiagramViewState } from "./diagramEditor.ts";
-import { type CoverageReport, InspectError, inspect, inspectDiagram, type Report } from "./inspect.ts";
+import {
+  type CoverageReport,
+  type DraftResult,
+  draftDiagram,
+  InspectError,
+  inspect,
+  inspectDiagram,
+  type Report,
+} from "./inspect.ts";
 import {
   hoverEntries,
   MARKER_STATUSES,
@@ -272,6 +280,72 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     }
   }
 
+  // Drafts the active file's diagram, or adds to it what it lacks.
+  async function draft(): Promise<void> {
+    const document = vscode.window.activeTextEditor?.document;
+    const folder = document && vscode.workspace.getWorkspaceFolder(document.uri);
+    if (!document || !folder || !isCode(document)) {
+      void vscode.window.showInformationMessage("Open a Ruby file in the workspace to draft its diagram.");
+      return;
+    }
+    await refresh(document);
+    const attachment = reports.get(document.uri.toString())?.attachment;
+    let merge = false;
+    if (attachment && !attachment.missing) {
+      const pick = await vscode.window.showQuickPick(
+        [
+          { label: "Add What the Diagram Lacks", description: "beside what is drawn", merge: true },
+          { label: "Draft a Separate File", description: "next to the diagram, to copy from", merge: false },
+        ],
+        { placeHolder: `${attachment.diagram_path} is already drawn` },
+      );
+      if (!pick) {
+        return;
+      }
+      merge = pick.merge;
+    }
+    const format = vscode.workspace
+      .getConfiguration("omoteura", document.uri)
+      .get<"excalidraw" | "obsidian">("draftFormat", "excalidraw");
+    let result: DraftResult;
+    try {
+      result = await draftDiagram(commandFor(document.uri), folder.uri.fsPath, document.uri.fsPath, { merge, format });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      log.error(`Could not draft ${vscode.workspace.asRelativePath(document.uri)}: ${message}`);
+      void vscode.window.showErrorMessage(`Omoteura could not draft this file: ${message}`);
+      return;
+    }
+    const shapes = `${result.shape_count} ${result.shape_count === 1 ? "shape" : "shapes"}`;
+    switch (result.status) {
+      case "written":
+      case "draft":
+      case "merged":
+        if (result.diagram_path) {
+          await openDiagram(vscode.Uri.joinPath(folder.uri, result.diagram_path));
+        }
+        if (result.status === "merged") {
+          void vscode.window.showInformationMessage(`Added ${shapes} to ${result.diagram_path}.`);
+        }
+        scheduleRefresh(document);
+        break;
+      case "up_to_date":
+        void vscode.window.showInformationMessage(`${result.diagram_path} already has a shape for everything.`);
+        break;
+      case "empty":
+        void vscode.window.showInformationMessage(
+          `${result.code_path} has no examples, declarations or public methods to draw.`,
+        );
+        break;
+      case "exists":
+        void vscode.window.showWarningMessage(`${result.diagram_path} already exists; delete it to draft again.`);
+        break;
+      case "no_diagram":
+        void vscode.window.showWarningMessage(`${result.code_path} has no diagram to add to.`);
+        break;
+    }
+  }
+
   // A diagram can back several files; go to the one whose report names it.
   // A shared diagram backs several files: prefer one the user came from.
   async function flipToCode(diagram: vscode.Uri): Promise<void> {
@@ -327,6 +401,7 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     ...decorations.values(),
     vscode.commands.registerCommand("omoteura.flip", flip),
     vscode.commands.registerCommand("omoteura.refresh", refreshEverything),
+    vscode.commands.registerCommand("omoteura.draft", draft),
     vscode.languages.registerHoverProvider({ language: "ruby", scheme: "file" }, { provideHover }),
     vscode.window.onDidChangeVisibleTextEditors(() => {
       render();

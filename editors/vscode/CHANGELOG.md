@@ -16,6 +16,8 @@
 - Saving, reverting and backups of unsaved drawings, through `omoteura save`,
   which keeps an Obsidian note intact and refuses to overwrite a change made
   elsewhere.
+- Omoteura: Draft Diagram, which drafts the open file's diagram or adds
+  what it lacks, with the `omoteura.draftFormat` setting.
 - The Omoteura Coverage panel, listing which declarations and public methods
   of the open file its specs cover.
 - A one-time notice with the fix when omoteura cannot run: Ruby too old (as

@@ -26,6 +26,10 @@ This extension shows those links where you write code.
 - **Save in the file's own format.** An Obsidian note keeps your notes around
   the drawing and stays compressed if it was. If the file changed elsewhere
   since it opened, say in Obsidian, saving stops instead of overwriting it.
+- **Draft a diagram to draw on.** **Omoteura: Draft Diagram** drafts the
+  open file's diagram, with every box linked to its code, and opens it. When
+  the file already has one, it adds only what the diagram has no shape for
+  yet, beside what is drawn, or drafts a separate file to copy from.
 - **See what the specs cover.** The Omoteura Coverage panel in the Explorer
   lists the open file's validations, associations, callbacks, scopes, enums
   and public methods, each marked by whether an example names it, failing if
@@ -65,6 +69,7 @@ extension's own files.
 | setting | default | meaning |
 | --- | --- | --- |
 | `omoteura.command` | `["bundle", "exec", "omoteura"]` | How to run omoteura, as a program and its arguments, without a shell |
+| `omoteura.draftFormat` | `"excalidraw"` | The format of a drafted diagram: `"excalidraw"`, or `"obsidian"` for a `.excalidraw.md` note |
 
 VS Code started from the Dock or Start menu may not see the Ruby that your
 version manager selects. If the status bar shows a warning about the Ruby
