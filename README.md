@@ -127,6 +127,26 @@ attach:
 A magic comment wins over `.omoteura.yml`, which wins over the path.
 
 
+## Drafting a Diagram
+
+A blank page is the hardest part, so Omoteura can draft a diagram to draw on:
+
+```sh
+% bundle exec omoteura draft spec/models/user_spec.rb
+wrote ura/spec/models/user_spec.excalidraw (4 shapes)
+```
+
+A spec gets a column per example group and a box per example; other code gets
+a column per kind of declaration (validations, associations, callbacks, scopes,
+enums) and one for public methods. Every box already links to its code, so test
+results show up straight away. Then make it yours: move, delete, annotate.
+
+A draft never replaces a diagram. When the file already has one, it goes beside
+it as `user_spec.draft.excalidraw` for you to copy from, and `omoteura check`
+reminds you to delete it. `--dry-run`, `--only methods,validations` and
+`--out DIR` are available; Obsidian's `.excalidraw.md` format is coming.
+
+
 ## Linking Shapes to Code
 
 Set a shape's link to text starting with `omoteura:`. Both Excalidraw and
@@ -184,7 +204,9 @@ status; clicking a link opens the code.
 | command | does |
 | --- | --- |
 | `omoteura check` | Report broken links and diagrams not attached to code |
+| `omoteura draft FILE...` | Draft a diagram from code, as a starting point to draw on |
 | `omoteura inspect FILE` | Print one file's diagram, links and test results as JSON, for editors |
+| `omoteura diagram FILE` | Print one diagram's drawing, links and test results as JSON, for editors |
 | `omoteura version` | Print the version |
 
 Run `omoteura <command> --help` for options.
