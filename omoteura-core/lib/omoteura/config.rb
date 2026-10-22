@@ -57,6 +57,11 @@ module Omoteura
       inside_root?(path) ? path : nil
     end
 
+    # The path relative to the root, for paths that #expand accepted.
+    def relative(path)
+      Pathname(path).relative_path_from(Pathname(root)).to_s
+    end
+
     private
 
     def inside_root?(path)
