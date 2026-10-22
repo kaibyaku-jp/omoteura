@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
+import type { Scene } from "./messages.ts";
 
-// The JSON printed by `omoteura inspect`, format version 1.
+// The JSON printed by `omoteura inspect` and `omoteura diagram`, format version 1.
 
 export type TestStatus = "passed" | "failed" | "pending";
 
@@ -41,6 +42,16 @@ export interface Report {
   error: string | null;
 }
 
+export interface DiagramReport {
+  version: 1;
+  diagram_path: string;
+  /** Code files the diagram is attached to; links without a path resolve against the first. */
+  attached_to: string[];
+  scene: Scene | null;
+  shapes: Shape[];
+  error: string | null;
+}
+
 export class InspectError extends Error {
   override name = "InspectError";
 }
@@ -74,27 +85,66 @@ export async function inspect(
   file: string,
   run: Runner = execRunner,
 ): Promise<Report> {
+  return parseReport(await runOmoteura(command, root, "inspect", file, run));
+}
+
+/** Asks omoteura about one diagram file. */
+export async function inspectDiagram(
+  command: readonly string[],
+  root: string,
+  file: string,
+  run: Runner = execRunner,
+): Promise<DiagramReport> {
+  return parseDiagramReport(await runOmoteura(command, root, "diagram", file, run));
+}
+
+async function runOmoteura(
+  command: readonly string[],
+  root: string,
+  subcommand: string,
+  file: string,
+  run: Runner,
+): Promise<string> {
   const [program, ...base] = command;
   if (!program) {
     throw new InspectError("The omoteura.command setting is empty.");
   }
-  const output = await run(program, [...base, "inspect", file, "--root", root], { cwd: root });
-  return parseReport(output);
+  return run(program, [...base, subcommand, file, "--root", root], { cwd: root });
 }
 
 export function parseReport(output: string): Report {
+  const data = parseJson(output, "inspect");
+  if (data.version !== 1 || !Array.isArray(data.shapes) || typeof data.code_path !== "string") {
+    throw unsupported("inspect");
+  }
+  return data as unknown as Report;
+}
+
+export function parseDiagramReport(output: string): DiagramReport {
+  const data = parseJson(output, "diagram");
+  if (data.version !== 1 || !Array.isArray(data.shapes) || !Array.isArray(data.attached_to)) {
+    throw unsupported("diagram");
+  }
+  return data as unknown as DiagramReport;
+}
+
+function parseJson(output: string, subcommand: string): Record<string, unknown> {
   let data: unknown;
   try {
     data = JSON.parse(output);
   } catch {
-    throw new InspectError(`omoteura inspect did not print JSON: ${output.slice(0, 200)}`);
+    throw new InspectError(`omoteura ${subcommand} did not print JSON: ${output.slice(0, 200)}`);
   }
-  if (!isObject(data) || data.version !== 1 || !Array.isArray(data.shapes) || typeof data.code_path !== "string") {
-    throw new InspectError(
-      "omoteura inspect printed a format this extension does not understand. Update the omoteura gem and the extension to matching versions.",
-    );
+  if (!isObject(data)) {
+    throw unsupported(subcommand);
   }
-  return data as unknown as Report;
+  return data;
+}
+
+function unsupported(subcommand: string): InspectError {
+  return new InspectError(
+    `omoteura ${subcommand} printed a format this extension does not understand. Update the omoteura gem and the extension to matching versions.`,
+  );
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
