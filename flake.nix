@@ -22,6 +22,8 @@
           packages = [
             (pkgs.bundler.override { ruby = pkgs.ruby_3_4; })
             pkgs.ruby_3_4
+            # For the VS Code extension in editors/vscode.
+            pkgs.nodejs_24
             pkgs.git
           ];
           shellHook = ''
