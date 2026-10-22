@@ -107,7 +107,7 @@ module Omoteura
     end
 
     def draft(args)
-      options = {root: Dir.pwd, only: Draft::CATEGORIES, out: nil, format: "json", dry_run: false, merge: false}
+      options = {root: Dir.pwd, only: Draft::CATEGORIES, out: nil, format: "json", dry_run: false, merge: false, json: false}
       parser = OptionParser.new do |o|
         o.banner = "Usage: omoteura draft FILE_OR_GLOB... [options]"
         o.on("--root DIR", "Project root (default: the current directory)") { |dir| options[:root] = dir }
@@ -116,6 +116,7 @@ module Omoteura
         o.on("--only LIST", Array, "For code other than specs, draw only: #{Draft::CATEGORIES.join(", ")}") { |list| options[:only] = list }
         o.on("--merge", "Add what the file's diagram has no shape for yet, to the right of it") { options[:merge] = true }
         o.on("--dry-run", "Show what would be written without writing") { options[:dry_run] = true }
+        o.on("--json", "Print the results as one line of JSON, for editors") { options[:json] = true }
         o.on("-h", "--help", "Show this help") do
           @out.puts o
           return 0
@@ -140,10 +141,12 @@ module Omoteura
       end
 
       drafter = Draft.new(config, only: options[:only], out: options[:out], format: format)
-      paths.each do |path|
+      results = paths.map do |path|
         result = options[:merge] ? drafter.merge(path, dry_run: options[:dry_run]) : drafter.draft(path, dry_run: options[:dry_run])
-        @out.puts draft_line(result, options[:dry_run])
+        @out.puts draft_line(result, options[:dry_run]) unless options[:json]
+        result
       end
+      @out.puts JSON.generate(version: Inspector::FORMAT_VERSION, results: results.map { |r| r.to_h.merge(status: r.status.to_s) }) if options[:json]
       0
     rescue OptionParser::ParseError, Config::Invalid, Writer::Conflict, Diagram::ParseError, Diagram::NotADiagram, Resolver::InvalidPath, MagicComment::Duplicate => e
       @err.puts "omoteura: #{e.message}"
