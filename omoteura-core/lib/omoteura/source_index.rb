@@ -7,9 +7,12 @@ module Omoteura
   # parsing the file with Prism without loading or running it.
   class SourceIndex
     # kind is :spec (an example group or example), :method or :statement.
-    # For :spec, name is the full description as RSpec builds it; for
-    # :statement, it is the first line of the statement.
-    Entry = Data.define(:kind, :name, :start_line, :end_line)
+    # For :spec, name is the full description as RSpec builds it, and group
+    # tells example groups from examples; for :statement, name is the first
+    # line of the statement.
+    # Every entry is built with all five members: a default would need an
+    # initialize override that allocates on each of thousands of entries.
+    Entry = Data.define(:kind, :name, :start_line, :end_line, :group)
 
     attr_reader :entries, :line_count, :spec_entries, :method_entries, :statement_entries
 
@@ -62,7 +65,7 @@ module Omoteura
 
         part, is_module = description_of(node)
         description = full_description(part)
-        add(:spec, description, node) if description
+        add(:spec, description, node, group: EXAMPLE_GROUPS.include?(node.name)) if description
 
         if EXAMPLE_GROUPS.include?(node.name)
           @groups.push(Group.new(description: description, module: is_module))
@@ -86,9 +89,9 @@ module Omoteura
         line
       end
 
-      def add(kind, name, node)
+      def add(kind, name, node, group: false)
         location = node.location
-        @entries << Entry.new(kind: kind, name: name, start_line: location.start_line, end_line: location.end_line)
+        @entries << Entry.new(kind: kind, name: name, start_line: location.start_line, end_line: location.end_line, group: group)
       end
 
       def spec_call?(node)
