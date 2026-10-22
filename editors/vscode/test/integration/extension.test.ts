@@ -214,7 +214,16 @@ describe("Omoteura", () => {
     });
     try {
       await settings.update("command", ["omoteura-missing-program"], vscode.ConfigurationTarget.Workspace);
+      // The refresh the change triggers can still read the old setting on a
+      // slow machine, so wait until it is visible and refresh explicitly.
+      await until(
+        () =>
+          vscode.workspace.getConfiguration("omoteura", spec()).get<string[]>("command")?.[0] ===
+          "omoteura-missing-program",
+        "the new setting",
+      );
       await show(spec());
+      await vscode.commands.executeCommand("omoteura.refresh");
       await until(() => api.error(spec()) !== undefined, "the error");
       // A second failure of the same kind must not announce it again.
       const second = refreshOf(spec(), () => api.error(spec()) !== undefined);
