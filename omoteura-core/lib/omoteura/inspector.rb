@@ -41,9 +41,10 @@ module Omoteura
       file = @config.expand(diagram_path) or raise ArgumentError, "#{diagram_path} is outside the project"
       relative = @config.relative(file)
       attached_to = code_attached_to(relative)
-      data = {version: FORMAT_VERSION, diagram_path: relative, attached_to: attached_to, scene: nil, shapes: [], error: nil}
+      data = {version: FORMAT_VERSION, diagram_path: relative, attached_to: attached_to, digest: nil, scene: nil, shapes: [], error: nil}
 
       diagram = Diagram.load(file)
+      data[:digest] = diagram.digest
       data[:scene] = diagram.scene
       data[:shapes] = diagram.linked_elements.map { |element| shape(element, attached_to.first) }
       data

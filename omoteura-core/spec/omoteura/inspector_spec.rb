@@ -114,8 +114,9 @@ RSpec.describe Omoteura::Inspector do
       data = described_class.new(Omoteura::Config.load(root), results: results([3, "failed"]))
         .diagram_report("ura/spec/models/user_spec.excalidraw")
 
-      expect(data.slice(:version, :diagram_path, :attached_to, :error)).to eq(
-        version: 1, diagram_path: "ura/spec/models/user_spec.excalidraw", attached_to: ["spec/models/user_spec.rb"], error: nil
+      expect(data.slice(:version, :diagram_path, :attached_to, :digest, :error)).to eq(
+        version: 1, diagram_path: "ura/spec/models/user_spec.excalidraw", attached_to: ["spec/models/user_spec.rb"],
+        digest: Omoteura::Writer.digest(File.read(File.join(root, "ura/spec/models/user_spec.excalidraw"))), error: nil
       )
       expect(data[:scene]["elements"].map { |e| e["id"] }).to eq(%w[name memo])
       expect(data[:shapes].map { |s| [s[:id], s[:target], s[:test][:status]] }).to eq([

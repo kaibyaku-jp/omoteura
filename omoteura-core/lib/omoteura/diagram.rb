@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "digest"
 require "json"
 require "psych"
 require "omoteura/lz_string"
@@ -33,7 +34,7 @@ module Omoteura
         format = detect_format(path, source)
         raise NotADiagram, "#{path} is not an Excalidraw drawing" unless format
 
-        new(path: path, format: format, data: parse_data(format, source, path))
+        new(path: path, format: format, data: parse_data(format, source, path), digest: Digest::SHA256.hexdigest(source))
       end
 
       def diagram_file?(path)
@@ -96,12 +97,14 @@ module Omoteura
       end
     end
 
-    attr_reader :path, :format, :elements
+    # digest is the SHA-256 of the file as read, for noticing later changes.
+    attr_reader :path, :format, :elements, :digest
 
-    def initialize(path:, format:, data:)
+    def initialize(path:, format:, data:, digest: nil)
       @path = path
       @format = format
       @data = data
+      @digest = digest
       @elements = build_elements(data["elements"])
     end
 

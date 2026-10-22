@@ -208,6 +208,7 @@ status; clicking a link opens the code.
 | `omoteura draft FILE...` | Draft a diagram from code, as a starting point to draw on |
 | `omoteura inspect FILE` | Print one file's diagram, links and test results as JSON, for editors |
 | `omoteura diagram FILE` | Print one diagram's drawing, links and test results as JSON, for editors |
+| `omoteura save FILE` | Save a drawing an editor changed, read as JSON from stdin, in the file's format |
 | `omoteura version` | Print the version |
 
 Run `omoteura <command> --help` for options.

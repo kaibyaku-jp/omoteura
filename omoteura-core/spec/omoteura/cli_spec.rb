@@ -24,10 +24,10 @@ RSpec.describe Omoteura::CLI do
     File.write(full, content)
   end
 
-  def run_cli(*argv)
+  def run_cli(*argv, input: "")
     out = StringIO.new
     err = StringIO.new
-    status = described_class.new(out: out, err: err).run(argv)
+    status = described_class.new(out: out, err: err, input: StringIO.new(input)).run(argv)
     [status, out.string, err.string]
   end
 
@@ -208,6 +208,38 @@ RSpec.describe Omoteura::CLI do
 
       expect(status).to eq(2)
       expect(err).to include("--out names one file, but 2 files match")
+    end
+  end
+
+  describe "save" do
+    let(:drawing) { JSON.generate(type: "excalidraw", elements: [{id: "Box00001", type: "rectangle", link: nil}]) }
+
+    it "saves the drawing from stdin and prints the digest of what it wrote" do
+      write("ura/app/models/user.excalidraw", "{\"elements\": []}")
+
+      status, out, err = run_cli("save", File.join(root, "ura/app/models/user.excalidraw"), "--root", root, input: drawing)
+
+      expect([status, err]).to eq([0, ""])
+      expect(JSON.parse(out)).to eq(
+        "version" => 1, "diagram_path" => "ura/app/models/user.excalidraw", "error" => nil, "conflict" => false,
+        "digest" => Omoteura::Writer.digest(File.read(File.join(root, "ura/app/models/user.excalidraw")))
+      )
+    end
+
+    it "reports a conflict as data and exits 1" do
+      write("ura/app/models/user.excalidraw", "{\"elements\": []}")
+
+      status, out, _err = run_cli("save", File.join(root, "ura/app/models/user.excalidraw"), "--root", root, "--if-unchanged", "0" * 64, input: drawing)
+
+      expect(status).to eq(1)
+      expect(JSON.parse(out)).to include("conflict" => true, "error" => "ura/app/models/user.excalidraw changed since it was read")
+    end
+
+    it "reports input that is not JSON and exits 1" do
+      status, out, _err = run_cli("save", File.join(root, "ura/x.excalidraw"), "--root", root, input: "{")
+
+      expect(status).to eq(1)
+      expect(JSON.parse(out)).to include("conflict" => false, "error" => "the drawing is not valid JSON")
     end
   end
 
