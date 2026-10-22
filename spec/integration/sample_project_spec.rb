@@ -81,6 +81,22 @@ RSpec.describe "A sample project" do
     expect(data["shapes"].map { |s| [s["label"], s.dig("test", "status")] }).to eq([["email 必須", "passed"], ["表示名", "failed"]])
   end
 
+  it "drafts a diagram for new code that passes the check as it is" do
+    File.write(File.join(project, "app/models/post.rb"), <<~RUBY)
+      class Post
+        def title
+          "Hello"
+        end
+      end
+    RUBY
+
+    out, _err, status = run_omoteura("draft", "app/models/post.rb")
+    expect([out, status.exitstatus]).to eq(["wrote ura/app/models/post.excalidraw (1 shape)\n", 0])
+
+    out, _err, status = run_omoteura("check")
+    expect([out, status.exitstatus]).to eq(["Checked 3 diagrams and 5 links: no problems.\n", 0])
+  end
+
   it "reports the link a renamed spec breaks" do
     spec = File.join(project, "spec/models/user_spec.rb")
     File.write(spec, File.read(spec).sub("requires an email", "needs an email"))

@@ -15,6 +15,7 @@ module Omoteura
         check     Report broken omoteura: links and diagrams not attached to code
         inspect   Print what an editor needs about one code file, as JSON
         diagram   Print what an editor needs to show one diagram, as JSON
+        draft     Draft a diagram from code, as a starting point to draw on
         version   Print the version
 
       Run "omoteura <command> --help" for a command's options.
@@ -31,6 +32,7 @@ module Omoteura
       when "check" then check(args)
       when "inspect" then editor_report(args, "inspect FILE") { |inspector, file| inspector.report(file) }
       when "diagram" then editor_report(args, "diagram FILE") { |inspector, file| inspector.diagram_report(file) }
+      when "draft" then draft(args)
       when "version", "--version", "-v"
         @out.puts VERSION
         0
@@ -96,6 +98,68 @@ module Omoteura
     rescue OptionParser::ParseError, Config::Invalid, TestResults::Invalid => e
       @err.puts "omoteura: #{e.message}"
       2
+    end
+
+    def draft(args)
+      options = {root: Dir.pwd, only: Draft::CATEGORIES, out: nil, format: "json", dry_run: false}
+      parser = OptionParser.new do |o|
+        o.banner = "Usage: omoteura draft FILE_OR_GLOB... [options]"
+        o.on("--root DIR", "Project root (default: the current directory)") { |dir| options[:root] = dir }
+        o.on("--out PATH", "Write here instead, relative to the root: a .excalidraw file or a directory") { |path| options[:out] = path }
+        o.on("--format FORMAT", %w[json md], "json for .excalidraw (default); md, for Obsidian, is not available yet") { |f| options[:format] = f }
+        o.on("--only LIST", Array, "For code other than specs, draw only: #{Draft::CATEGORIES.join(", ")}") { |list| options[:only] = list }
+        o.on("--dry-run", "Show what would be written without writing") { options[:dry_run] = true }
+        o.on("-h", "--help", "Show this help") do
+          @out.puts o
+          return 0
+        end
+      end
+      parser.parse!(args)
+      raise OptionParser::InvalidArgument, "expected at least one FILE" if args.empty?
+      raise OptionParser::InvalidArgument, "--format md needs Obsidian output, which is not available yet" if options[:format] == "md"
+      unknown = options[:only] - Draft::CATEGORIES
+      raise OptionParser::InvalidArgument, "--only does not know #{unknown.join(", ")}" unless unknown.empty?
+
+      config = Config.load(options[:root])
+      paths = draft_paths(args, config)
+      if options[:out]&.end_with?(".excalidraw") && paths.size > 1
+        raise OptionParser::InvalidArgument, "--out names one file, but #{paths.size} files match"
+      end
+
+      drafter = Draft.new(config, only: options[:only], out: options[:out])
+      paths.each { |path| @out.puts draft_line(drafter.draft(path, dry_run: options[:dry_run]), options[:dry_run]) }
+      0
+    rescue OptionParser::ParseError, Config::Invalid => e
+      @err.puts "omoteura: #{e.message}"
+      2
+    end
+
+    # Arguments are files or globs, relative to the root.
+    def draft_paths(args, config)
+      paths = args.flat_map do |arg|
+        matches = arg.match?(/[*?\[{]/) ? Dir.glob(arg, base: config.root).sort : [arg]
+        raise OptionParser::InvalidArgument, "#{arg} matches no files" if matches.empty?
+
+        matches.map do |path|
+          file = config.expand(path) or raise OptionParser::InvalidArgument, "#{path} is outside #{config.root}"
+          raise OptionParser::InvalidArgument, "#{path} is not a file" unless File.file?(file)
+
+          config.relative(file)
+        end
+      end
+      paths.uniq
+    end
+
+    def draft_line(result, dry_run)
+      shapes = "#{result.shape_count} #{(result.shape_count == 1) ? "shape" : "shapes"}"
+      verb = dry_run ? "would write" : "wrote"
+      case result.status
+      when :written then "#{verb} #{result.diagram_path} (#{shapes})"
+      when :draft
+        "#{verb} #{result.diagram_path} (#{shapes}) beside the diagram #{result.code_path} already has; copy what you need, then delete it"
+      when :exists then "skipped #{result.code_path}: #{result.diagram_path} already exists; delete it to draft again"
+      when :empty then "skipped #{result.code_path}: nothing to draw"
+      end
     end
 
     def format_problem(problem, format)

@@ -9,6 +9,7 @@ end
 require "omoteura/checker"
 require "omoteura/config"
 require "omoteura/diagram"
+require "omoteura/draft"
 require "omoteura/inspector"
 require "omoteura/link_resolver"
 require "omoteura/magic_comment"
