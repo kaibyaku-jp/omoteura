@@ -38,16 +38,28 @@ module Omoteura
         raise Invalid, "#{path} is not an Omoteura results file of version #{SUPPORTED_VERSION}"
       end
 
-      new(data["examples"].map do |e|
+      examples = data["examples"].map do |e|
         Example.new(file_path: e["file_path"], line_number: e["line_number"], full_description: e["full_description"],
           status: e["status"], message: e["message"])
-      end)
+      end
+      executed = data["executed_lines"]
+      new(examples, executed_lines: executed.is_a?(Hash) ? executed : nil)
     rescue JSON::ParserError => e
       raise Invalid, "#{path} is not valid JSON: #{e.message}"
     end
 
-    def initialize(examples)
+    # executed_lines maps files to the line numbers that ran during the
+    # tests, when the run measured coverage; nil when it did not.
+    def initialize(examples, executed_lines: nil)
       @examples = examples
+      @executed_lines = executed_lines&.transform_values { |lines| lines.to_h { |line| [line, true] } }
+    end
+
+    # Whether code between the lines ran, or nil when nothing says: the run
+    # did not measure coverage, or did not load the file.
+    def executed?(path, lines)
+      executed = @executed_lines&.[](path) or return nil
+      lines.any? { |line| executed[line] }
     end
 
     # Summarizes the examples defined within the lines of a link target,

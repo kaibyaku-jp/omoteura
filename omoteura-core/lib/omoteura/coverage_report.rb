@@ -9,7 +9,9 @@ module Omoteura
   # description or its code: "validates :email" by an example mentioning
   # email, "def display_name" by one inside describe "#display_name". The
   # descriptions RSpec generated in the last run, such as those of
-  # shoulda-matchers one-liners, count as well.
+  # shoulda-matchers one-liners, count as well. A method also counts as
+  # covered when its body ran in the last run, if that run measured
+  # coverage.
   class CoverageReport
     FORMAT_VERSION = 1
 
@@ -28,7 +30,7 @@ module Omoteura
       specs = spec_paths(relative)
       examples = specs.flat_map { |spec| examples_in(spec) }
       items = Outline.new(SourceIndex.parse_file(file)).items
-      data.merge(spec_paths: specs, items: items.map { |item| item_data(item, examples) })
+      data.merge(spec_paths: specs, items: items.map { |item| item_data(item, examples, relative) })
     end
 
     private
@@ -70,18 +72,30 @@ module Omoteura
       end
     end
 
-    def item_data(item, examples)
+    def item_data(item, examples, code_path)
       entry = item.entry
       patterns = names_of(item).map { |name| patterns_for(name) }
       covering = examples.select { |example| patterns.any? { |words, code| example.description.match?(words) || example.source.match?(code) } }
+      executed = executed?(item, code_path)
       {
         kind: item.kind,
         name: entry.name,
         start_line: entry.start_line,
         end_line: entry.end_line,
-        covered: !covering.empty?,
+        covered: !covering.empty? || executed == true,
+        executed: executed,
         examples: covering.map { |e| {path: e.path, line: e.line, description: e.label, status: e.status} }
       }
+    end
+
+    # Whether a method's body ran: its def line runs when the class loads,
+    # so only the lines after it tell. nil for declarations, which run when
+    # the class loads, and for methods on one line.
+    def executed?(item, code_path)
+      entry = item.entry
+      return nil unless item.kind == "methods" && entry.end_line - entry.start_line >= 2
+
+      @results.executed?(code_path, (entry.start_line + 1)...entry.end_line)
     end
 
     # What an example would call the item: the symbols a declaration names,

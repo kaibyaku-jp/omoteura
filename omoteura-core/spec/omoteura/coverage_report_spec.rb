@@ -101,11 +101,35 @@ RSpec.describe Omoteura::CoverageReport do
     expect(coverage("app/models/user.rb", results: results).assoc("belongs_to :team")).to eq(["belongs_to :team", true, [2]])
   end
 
+  describe "with the lines the last run executed" do
+    before do
+      write("app/models/post.rb", "class Post\n  has_many :tags\n\n  def title\n    \"t\"\n  end\n\n  def slug\n    \"s\"\n  end\n\n  def empty\n  end\nend\n")
+    end
+
+    def judged(executed_lines)
+      results = Omoteura::TestResults.new([], executed_lines: executed_lines)
+      report("app/models/post.rb", results: results)[:items].map { |item| [item[:name], item[:covered], item[:executed]] }
+    end
+
+    it "counts a method whose body ran, and says which did not; declarations and empty methods cannot tell" do
+      expect(judged("app/models/post.rb" => [1, 2, 4, 5, 8, 12])).to eq([
+        ["has_many :tags", false, nil],
+        ["title", true, true],
+        ["slug", false, false],
+        ["empty", false, nil]
+      ])
+    end
+
+    it "cannot tell for a file the run did not load" do
+      expect(judged({}).map(&:last)).to eq([nil, nil, nil, nil])
+    end
+  end
+
   it "lists the items as untested when the file has no spec" do
     write("app/models/post.rb", "class Post\n  def title\n  end\nend\n")
 
     expect(report("app/models/post.rb")).to include(spec_paths: [], items: [
-      {kind: "methods", name: "title", start_line: 2, end_line: 3, covered: false, examples: []}
+      {kind: "methods", name: "title", start_line: 2, end_line: 3, covered: false, executed: nil, examples: []}
     ])
   end
 
