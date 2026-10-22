@@ -19,8 +19,9 @@ RSpec.describe "Omoteura::RSpec::Formatter" do
 
   attr_reader :root
 
-  def run_rspec
+  def run_rspec(*options)
     File.write(File.join(root, ".rspec"), <<~OPTIONS)
+      #{options.join("\n")}
       --format progress
       --format Omoteura::RSpec::Formatter --out tmp/omoteura/results.json
     OPTIONS
@@ -71,6 +72,45 @@ RSpec.describe "Omoteura::RSpec::Formatter" do
 
     expect(failed["message"]).to include('expected: "unique"')
     expect(failed["message"]).not_to match(/\e\[/)
+  end
+
+  context "when something measures coverage, as SimpleCov does" do
+    before do
+      FileUtils.mkdir_p(File.join(root, "app/models"))
+      File.write(File.join(root, "app/models/greeter.rb"), <<~RUBY)
+        class Greeter
+          def hello
+            "hello"
+          end
+
+          def bye
+            "bye"
+          end
+        end
+      RUBY
+      File.write(File.join(root, "spec/coverage_helper.rb"), "require \"coverage\"\nCoverage.start(lines: true)\n")
+      File.write(File.join(root, "spec/greeter_spec.rb"), <<~RUBY)
+        require_relative "../app/models/greeter"
+
+        RSpec.describe Greeter do
+          it "says hello" do
+            expect(Greeter.new.hello).to eq("hello")
+          end
+        end
+      RUBY
+    end
+
+    it "records the lines of the project's code that ran, leaving out the specs" do
+      _status, results = run_rspec("--require ./spec/coverage_helper.rb")
+
+      expect(results["executed_lines"]).to eq("app/models/greeter.rb" => [1, 2, 3, 6])
+    end
+  end
+
+  it "records no lines when nothing measures coverage" do
+    _status, results = run_rspec
+
+    expect(results).not_to have_key("executed_lines")
   end
 
   it "includes the pending reason" do

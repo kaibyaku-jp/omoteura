@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "coverage"
 require "json"
 require "time"
 require "rspec/core"
@@ -14,9 +15,16 @@ module Omoteura
     #
     # RSpec loads this file from the class name by itself, so .rspec needs
     # no --require line.
+    #
+    # When something already measures coverage, as SimpleCov does, the lines
+    # of the project's own code that ran are recorded too, so the editor can
+    # tell which methods the tests called. The formatter never starts
+    # coverage itself: a coverage tool starting after it would fail.
     class Formatter
       FORMAT_VERSION = 1
       ANSI_ESCAPE = /\e\[[0-9;]*m/
+      # Code that is not the project's own, or is the tests themselves.
+      NOT_PROJECT_CODE = %r{\A(?:spec|test|vendor|tmp|node_modules)/}
 
       ::RSpec::Core::Formatters.register self, :example_passed, :example_failed, :example_pending, :close
 
@@ -39,12 +47,10 @@ module Omoteura
       end
 
       def close(_notification)
-        @output.write(JSON.pretty_generate(
-          version: FORMAT_VERSION,
-          generated_at: Time.now.utc.iso8601,
-          summary: summary,
-          examples: @examples
-        ))
+        data = {version: FORMAT_VERSION, generated_at: Time.now.utc.iso8601, summary: summary, examples: @examples}
+        executed = executed_lines
+        data[:executed_lines] = executed if executed
+        @output.write(JSON.pretty_generate(data))
         @output.write("\n")
       end
 
@@ -59,6 +65,27 @@ module Omoteura
           status: status,
           message: message
         }
+      end
+
+      # Line numbers that ran, by file relative to the working directory, or
+      # nil when coverage is not being measured.
+      def executed_lines
+        return nil unless ::Coverage.running?
+
+        root = File.join(Dir.pwd, "")
+        ::Coverage.peek_result.each_with_object({}) do |(path, counts), executed|
+          next unless path.start_with?(root) && path.end_with?(".rb")
+
+          relative = path.delete_prefix(root)
+          next if relative.match?(NOT_PROJECT_CODE)
+
+          # Hash for Coverage.start(lines: true), as SimpleCov uses; an
+          # Array of line counts for the older Coverage.start.
+          lines = counts.is_a?(Hash) ? counts[:lines] : counts
+          next unless lines
+
+          executed[relative] = lines.each_index.select { |i| lines[i]&.positive? }.map { |i| i + 1 }
+        end
       end
 
       def summary
