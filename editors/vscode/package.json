@@ -1,0 +1,102 @@
+{
+  "name": "omoteura",
+  "displayName": "Omoteura",
+  "description": "Code in front, context behind. Flip Ruby code to the Excalidraw drawing behind it and see test results next to the lines it links to.",
+  "version": "0.0.1",
+  "publisher": "kaibyaku",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kaibyaku-jp/omoteura",
+    "directory": "editors/vscode"
+  },
+  "bugs": "https://github.com/kaibyaku-jp/omoteura/issues",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Testing",
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "ruby",
+    "rails",
+    "rspec",
+    "excalidraw",
+    "obsidian",
+    "diagram"
+  ],
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onLanguage:ruby"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Omoteura runs `bundle exec omoteura`, which loads the project's Gemfile."
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "omoteura.flip",
+        "title": "Flip Between Code and Diagram",
+        "category": "Omoteura"
+      },
+      {
+        "command": "omoteura.refresh",
+        "title": "Refresh",
+        "category": "Omoteura"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "omoteura.flip",
+        "key": "ctrl+alt+u",
+        "mac": "cmd+alt+u",
+        "when": "editorTextFocus || activeCustomEditorId"
+      }
+    ],
+    "configuration": {
+      "title": "Omoteura",
+      "properties": {
+        "omoteura.command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "bundle",
+            "exec",
+            "omoteura"
+          ],
+          "markdownDescription": "How to run omoteura, as a program and its arguments. It runs from the workspace folder without a shell."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc",
+    "lint": "biome check .",
+    "test": "node --test \"test/unit/**/*.test.ts\"",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.2",
+    "@types/mocha": "10.0.10",
+    "@types/node": "24.19.2",
+    "@types/vscode": "1.95.0",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.0.0",
+    "esbuild": "0.28.2",
+    "mocha": "12.0.3",
+    "typescript": "7.0.2"
+  }
+}
