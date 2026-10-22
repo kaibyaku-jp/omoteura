@@ -32,3 +32,6 @@ updates:
     ignore:
       # Kept at the oldest VS Code that package.json supports.
       - dependency-name: "@types/vscode"
+      # Kept at the major version of Node inside that VS Code (Node 20 in 1.95).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
