@@ -3,8 +3,8 @@
 require "omoteura/core"
 
 RSpec.describe Omoteura::SourceIndex do
-  def entry(kind, name, start_line, end_line = start_line)
-    described_class::Entry.new(kind: kind, name: name, start_line: start_line, end_line: end_line)
+  def entry(kind, name, start_line, end_line = start_line, group: false)
+    described_class::Entry.new(kind: kind, name: name, start_line: start_line, end_line: end_line, group: group)
   end
 
   describe "#spec_entries" do
@@ -30,13 +30,13 @@ RSpec.describe Omoteura::SourceIndex do
       RUBY
 
       expect(index.spec_entries).to eq([
-        entry(:spec, "User", 1, 17),
-        entry(:spec, "User validations", 2, 8),
-        entry(:spec, "User validations email", 3, 7),
+        entry(:spec, "User", 1, 17, group: true),
+        entry(:spec, "User validations", 2, 8, group: true),
+        entry(:spec, "User validations email", 3, 7, group: true),
         entry(:spec, "User validations email 一意であること", 4, 6),
-        entry(:spec, "User#display_name", 10, 13),
+        entry(:spec, "User#display_name", 10, 13, group: true),
         entry(:spec, "User#display_name falls back to the email", 11, 12),
-        entry(:spec, "User.find_by_email", 15, 16)
+        entry(:spec, "User.find_by_email", 15, 16, group: true)
       ])
     end
 
