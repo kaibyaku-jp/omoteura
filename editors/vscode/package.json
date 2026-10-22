@@ -53,8 +53,21 @@
         "command": "omoteura.refresh",
         "title": "Refresh",
         "category": "Omoteura"
+      },
+      {
+        "command": "omoteura.draft",
+        "title": "Draft Diagram",
+        "category": "Omoteura"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "omoteura.draft",
+          "when": "editorLangId == ruby"
+        }
+      ]
+    },
     "keybindings": [
       {
         "command": "omoteura.flip",
@@ -66,6 +79,19 @@
     "configuration": {
       "title": "Omoteura",
       "properties": {
+        "omoteura.draftFormat": {
+          "type": "string",
+          "enum": [
+            "excalidraw",
+            "obsidian"
+          ],
+          "enumDescriptions": [
+            "A .excalidraw file, as excalidraw.com saves it",
+            "A .excalidraw.md note, as Obsidian's Excalidraw plugin saves it"
+          ],
+          "default": "excalidraw",
+          "markdownDescription": "The file format of a diagram drafted by **Omoteura: Draft Diagram**."
+        },
         "omoteura.command": {
           "type": "array",
           "items": {

@@ -22,7 +22,7 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `omoteura draft` to draft a diagram from code, with every box linked, as
   `.excalidraw` or, with `--format md`, as an Obsidian note; it never replaces
   an existing diagram; `--merge` adds only what the diagram has no shape for
-  yet, beside what is drawn.
+  yet, beside what is drawn, and `--json` prints the results for editors.
 - Write Obsidian Excalidraw notes as the plugin does, keeping what the user
   wrote above the drawing, and read links edited under its Element Links.
 - `omoteura coverage`, which lists a file's declarations and public methods

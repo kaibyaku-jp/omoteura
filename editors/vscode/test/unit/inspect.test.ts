@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  draftDiagram,
   execRunner,
   InspectError,
   inspect,
@@ -153,6 +154,61 @@ describe("execRunner", () => {
     await assert.rejects(
       execRunner(process.execPath, ["-e", echo, "2"], { cwd: ".", input: "x", okStatuses: [1] }),
       InspectError,
+    );
+  });
+});
+
+describe("draftDiagram", () => {
+  const written = {
+    code_path: "app/models/user.rb",
+    diagram_path: "ura/app/models/user.excalidraw.md",
+    shape_count: 2,
+    status: "written",
+  };
+
+  it("drafts with --json, in the format asked for", async () => {
+    let args: string[] = [];
+    const run: Runner = async (_program, given) => {
+      args = given;
+      return JSON.stringify({ version: 1, results: [written] });
+    };
+
+    const result = await draftDiagram(
+      ["omoteura"],
+      "/project",
+      "/project/app/models/user.rb",
+      { merge: false, format: "obsidian" },
+      run,
+    );
+
+    assert.deepEqual(args, ["draft", "/project/app/models/user.rb", "--root", "/project", "--json", "--format", "md"]);
+    assert.deepEqual(result, written);
+  });
+
+  it("merges in the diagram's own format", async () => {
+    let args: string[] = [];
+    const run: Runner = async (_program, given) => {
+      args = given;
+      return JSON.stringify({ version: 1, results: [{ ...written, status: "merged" }] });
+    };
+
+    await draftDiagram(
+      ["omoteura"],
+      "/project",
+      "/project/app/models/user.rb",
+      { merge: true, format: "obsidian" },
+      run,
+    );
+
+    assert.deepEqual(args.slice(4), ["--json", "--merge"]);
+  });
+
+  it("rejects output it does not understand", async () => {
+    const run: Runner = async () => JSON.stringify({ version: 2, results: [] });
+
+    await assert.rejects(
+      draftDiagram(["omoteura"], "/p", "/p/a.rb", { merge: false, format: "excalidraw" }, run),
+      /does not understand/,
     );
   });
 });

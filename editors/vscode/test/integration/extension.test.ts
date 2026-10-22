@@ -348,6 +348,44 @@ describe("Omoteura", () => {
     );
   });
 
+  it("drafts the open file's diagram, then adds what it lacks", async () => {
+    const code = file("app/models/label.rb");
+    await vscode.workspace.fs.writeFile(code, new TextEncoder().encode("class Label\n  def name\n  end\nend\n"));
+    await show(code);
+    const diagram = file("ura/app/models/label.excalidraw");
+
+    await vscode.commands.executeCommand("omoteura.draft");
+    await until(() => activeTabUri() === diagram.toString(), "the drafted diagram");
+    assert.deepEqual(
+      scene(diagram)
+        .elements.map((element) => element.link)
+        .filter(Boolean),
+      ["omoteura:#name"],
+    );
+
+    await vscode.workspace.fs.writeFile(
+      code,
+      new TextEncoder().encode("class Label\n  def name\n  end\n\n  def color\n  end\nend\n"),
+    );
+    await show(code);
+    const showQuickPick = vscode.window.showQuickPick;
+    Object.assign(vscode.window, {
+      showQuickPick: async (items: readonly { merge: boolean }[]) => items.find((item) => item.merge),
+    });
+    try {
+      await vscode.commands.executeCommand("omoteura.draft");
+    } finally {
+      Object.assign(vscode.window, { showQuickPick });
+    }
+
+    assert.deepEqual(
+      scene(diagram)
+        .elements.map((element) => element.link)
+        .filter(Boolean),
+      ["omoteura:#name", "omoteura:#color"],
+    );
+  });
+
   it("creates an empty diagram at the conventional path when asked", async () => {
     const code = file("app/models/post.rb");
     await vscode.workspace.fs.writeFile(code, new TextEncoder().encode("class Post\nend\n"));

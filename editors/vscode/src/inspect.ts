@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import type { Scene } from "./messages.ts";
 
-// The JSON printed by `omoteura inspect`, `diagram`, `coverage` and `save`, format version 1.
+// The JSON printed by `omoteura inspect`, `diagram`, `coverage`, `save` and `draft --json`, format version 1.
 
 export type TestStatus = "passed" | "failed" | "pending";
 
@@ -82,6 +82,13 @@ export interface CoverageReport {
   items: CoverageItem[];
 }
 
+export interface DraftResult {
+  code_path: string;
+  diagram_path: string | null;
+  shape_count: number;
+  status: "written" | "draft" | "exists" | "empty" | "merged" | "up_to_date" | "no_diagram";
+}
+
 export interface SaveResult {
   version: 1;
   diagram_path: string | null;
@@ -159,6 +166,30 @@ export async function inspectCoverage(
   run: Runner = execRunner,
 ): Promise<CoverageReport> {
   return parseCoverageReport(await runOmoteura(command, root, "coverage", file, run));
+}
+
+/**
+ * Drafts a diagram from one code file, or with merge adds what its diagram
+ * has no shape for yet. format is the file format of a new diagram.
+ */
+export async function draftDiagram(
+  command: readonly string[],
+  root: string,
+  file: string,
+  { merge, format }: { merge: boolean; format: "excalidraw" | "obsidian" },
+  run: Runner = execRunner,
+): Promise<DraftResult> {
+  const extra = [
+    "--json",
+    ...(merge ? ["--merge"] : []),
+    ...(format === "obsidian" && !merge ? ["--format", "md"] : []),
+  ];
+  const data = parseJson(await runOmoteura(command, root, "draft", file, run, extra), "draft");
+  const [result] = Array.isArray(data.results) ? data.results : [];
+  if (data.version !== 1 || !isObject(result) || typeof result.status !== "string") {
+    throw unsupported("draft");
+  }
+  return result as unknown as DraftResult;
 }
 
 /**
