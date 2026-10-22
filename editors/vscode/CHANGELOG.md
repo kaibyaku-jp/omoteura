@@ -10,3 +10,6 @@
   an empty diagram for a file that has none.
 - A status bar item that summarizes the diagram's links, or says why the file
   could not be inspected.
+- A one-time notice with the fix when omoteura cannot run: Ruby too old (as
+  when VS Code finds the system Ruby), omoteura missing from the Gemfile, gems
+  not installed, no Gemfile, or a program not on PATH.

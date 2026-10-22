@@ -10,6 +10,7 @@ import {
   summarize,
   summaryText,
 } from "./markers.ts";
+import { diagnose, type SetupProblem } from "./setup.ts";
 
 const DEFAULT_COMMAND = ["bundle", "exec", "omoteura"];
 const REFRESH_DELAY_MS = 250;
@@ -56,6 +57,8 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
   const log = vscode.window.createOutputChannel("Omoteura", { log: true });
   const reports = new Map<string, Report>();
   const errors = new Map<string, string>();
+  // Each setup problem is announced once a session, not for every file.
+  const announced = new Set<SetupProblem>();
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   const refreshed = new vscode.EventEmitter<vscode.Uri>();
 
@@ -95,9 +98,27 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
       reports.delete(key);
       errors.set(key, message);
       log.error(`Could not inspect ${vscode.workspace.asRelativePath(document.uri)}: ${message}`);
+      announce(message);
     }
     render();
     refreshed.fire(document.uri);
+  }
+
+  function announce(error: string): void {
+    const diagnosis = diagnose(error);
+    if (!diagnosis || announced.has(diagnosis.problem)) {
+      return;
+    }
+    announced.add(diagnosis.problem);
+    const openSettings = "Open Settings";
+    const showOutput = "Show Output";
+    void vscode.window.showWarningMessage(diagnosis.message, openSettings, showOutput).then((choice) => {
+      if (choice === openSettings) {
+        void vscode.commands.executeCommand("workbench.action.openSettings", "omoteura.command");
+      } else if (choice === showOutput) {
+        log.show();
+      }
+    });
   }
 
   function scheduleRefresh(document: vscode.TextDocument): void {
@@ -141,7 +162,7 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     const error = document && errors.get(document.uri.toString());
     if (error) {
       statusBar.text = "$(warning) omoteura";
-      statusBar.tooltip = `Omoteura could not inspect this file: ${error}`;
+      statusBar.tooltip = diagnose(error)?.message ?? `Omoteura could not inspect this file: ${error}`;
       statusBar.show();
       return;
     }
