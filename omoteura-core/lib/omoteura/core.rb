@@ -5,3 +5,5 @@ require "omoteura/core/version"
 module Omoteura
   class Error < StandardError; end
 end
+
+require "omoteura/diagram"
