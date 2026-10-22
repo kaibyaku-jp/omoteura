@@ -108,6 +108,12 @@ RSpec.describe Omoteura::Checker do
     expect(run.problems).to eq([problem("ura/app/models/post.excalidraw.md", "is not attached to any code file")])
   end
 
+  it "reminds about a draft left beside a diagram" do
+    write("ura/app/models/user.draft.excalidraw", drawing)
+
+    expect(run.problems).to eq([problem("ura/app/models/user.draft.excalidraw", "is a draft; copy what you need into the diagram, then delete it")])
+  end
+
   it "does not report a shared diagram attached by a magic comment" do
     write("ura/shared/user.excalidraw", drawing)
     write("app/models/user.rb", "# omoteura: ura/shared/user.excalidraw\nclass User; end\n")

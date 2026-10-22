@@ -73,7 +73,8 @@ module Omoteura
         path = File.join(config.diagrams_dir, relative)
         next if attached.include?(path) || !Diagram.diagram_file?(File.join(config.root, path))
 
-        Problem.new(file: path, message: "is not attached to any code file", shape: nil)
+        message = path.match?(/\.draft\.excalidraw(?:\.md)?\z/) ? "is a draft; copy what you need into the diagram, then delete it" : "is not attached to any code file"
+        Problem.new(file: path, message: message, shape: nil)
       end
     end
   end
