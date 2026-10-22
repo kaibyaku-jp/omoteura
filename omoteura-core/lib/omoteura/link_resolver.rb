@@ -72,13 +72,14 @@ module Omoteura
 
     # A trailing part must start at a word boundary: "email 一意であること"
     # matches "User validations email 一意であること" but "ail 一意であること"
-    # does not. "#name" and ".name" may follow a module name directly.
+    # does not. In "User#display_name", both "#display_name" and
+    # "display_name" match, as "#", "." and "::" also end a word.
     def spec_match?(name, fragment)
       return true if name == fragment
       return false unless name.end_with?(fragment)
 
       before = name[-fragment.length - 1]
-      before == " " || fragment.start_with?("#", ".", "::")
+      [" ", "#", ".", ":"].include?(before) || fragment.start_with?("#", ".", "::")
     end
 
     # An exact description beats descriptions that only end with it.

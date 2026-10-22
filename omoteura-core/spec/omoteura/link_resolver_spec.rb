@@ -81,6 +81,33 @@ RSpec.describe Omoteura::LinkResolver do
       expect(result.target).to eq(target("spec/models/user_spec.rb", 3, 6))
     end
 
+    it "resolves a method name described by RSpec's #method convention" do
+      write("spec/models/post_spec.rb", <<~RUBY)
+        RSpec.describe Post do
+          describe "#title" do
+            it "is required" do
+            end
+          end
+
+          describe ".published" do
+          end
+        end
+      RUBY
+
+      expect(resolver.resolve("omoteura:spec/models/post_spec.rb#title is required").target)
+        .to eq(target("spec/models/post_spec.rb", 3, 4))
+      expect(resolver.resolve("omoteura:spec/models/post_spec.rb#title").target)
+        .to eq(target("spec/models/post_spec.rb", 2, 5))
+      expect(resolver.resolve("omoteura:spec/models/post_spec.rb#published").target)
+        .to eq(target("spec/models/post_spec.rb", 7, 8))
+    end
+
+    it "does not match a fragment that starts inside a method name" do
+      write("spec/models/post_spec.rb", "RSpec.describe Post do\n  describe \"#subtitle\" do\n  end\nend\n")
+
+      expect(resolver.resolve("omoteura:spec/models/post_spec.rb#title")).to be_broken
+    end
+
     it "requires a trailing part to start at a word boundary" do
       result = resolver.resolve("omoteura:#ail 一意であること", context_path: "spec/models/user_spec.rb")
 
