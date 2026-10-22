@@ -1,0 +1,2 @@
+--format progress
+--format Omoteura::RSpec::Formatter --out tmp/omoteura/results.json
