@@ -60,6 +60,18 @@ RSpec.describe Omoteura::Diagram do
       expect { described_class.load(fixture("note.md")) }.to raise_error(described_class::NotADiagram)
     end
 
+    it "takes a link edited under Element Links over the one in the drawing, as Obsidian does" do
+      Dir.mktmpdir do |dir|
+        path = File.join(dir, "user.excalidraw.md")
+        File.write(path, File.read(fixture("user_compressed.excalidraw.md"))
+          .sub("EmailBox: omoteura:#email 一意であること", "EmailBox: omoteura:#email は一意")
+          .sub("## Element Links\n", "## Element Links\nMemoText: omoteura:#memo\n\n"))
+
+        expect(described_class.load(path).linked_elements.map { |e| [e.id, e.link] })
+          .to eq([["EmailBox", "omoteura:#email は一意"], ["MemoText", "omoteura:#memo"]])
+      end
+    end
+
     it "raises ParseError when the drawing block is missing" do
       Dir.mktmpdir do |dir|
         path = File.join(dir, "broken.excalidraw.md")

@@ -22,6 +22,9 @@ module Omoteura
 
     FRONTMATTER = /\A---[ \t]*\r?\n(.*?)^---[ \t]*$/m
     DRAWING_BLOCK = /^\#\#[ \t]+Drawing[ \t]*\r?\n+```(json|compressed-json)[ \t]*\r?\n(.*?)^```/m
+    ELEMENT_LINKS = /^\#\# Element Links\r?\n(.*?)(?=^\#\# Embedded Files|^\#\#? Drawing|\z)/m
+    # The plugin's ids are eight characters.
+    ELEMENT_LINK = /^(.{8}):[ \t]*(.*?)\r?$/
 
     class << self
       def load(path)
@@ -69,6 +72,7 @@ module Omoteura
         data = JSON.parse(json)
         raise ParseError, "#{path} has no elements list" unless data.is_a?(Hash) && data["elements"].is_a?(Array)
 
+        apply_element_links(source, data["elements"]) if format == :obsidian
         data
       rescue JSON::ParserError => e
         raise ParseError, "#{path} has invalid drawing JSON: #{e.message}"
@@ -80,6 +84,15 @@ module Omoteura
 
         LZString.decompress_from_base64(match[2]) or
           raise ParseError, "#{path} has a corrupt compressed-json block"
+      end
+
+      # As in the plugin, a link listed under Element Links wins over the
+      # one in the drawing, so a link edited in the markdown counts before
+      # Obsidian has saved the drawing again.
+      def apply_element_links(source, elements)
+        section = ELEMENT_LINKS.match(source) or return
+        links = section[1].scan(ELEMENT_LINK).to_h
+        elements.each { |e| e["link"] = links[e["id"]] if e.is_a?(Hash) && links.key?(e["id"]) }
       end
     end
 
