@@ -6,4 +6,5 @@ module Omoteura
   class Error < StandardError; end
 end
 
+require "omoteura/config"
 require "omoteura/diagram"
