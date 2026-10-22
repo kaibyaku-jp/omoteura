@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "omoteura/cli"
+
+exit Omoteura::CLI.new.run(ARGV)
