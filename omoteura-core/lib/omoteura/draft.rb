@@ -202,10 +202,7 @@ module Omoteura
 
     # The first candidate that resolves to exactly this entry, or nil.
     def verified_link(candidates, entry, code_path)
-      candidates.find do |link|
-        target = @link_resolver.resolve(link, context_path: code_path).target
-        target && target.path == code_path && target.start_line == entry.start_line
-      end
+      @link_resolver.exact_link(candidates, path: code_path, line: entry.start_line)
     end
 
     # The draft takes the conventional place, unless the file already has
