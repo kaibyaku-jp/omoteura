@@ -3,7 +3,8 @@ import { type MarkerStatus, statusOf } from "./markers.ts";
 import type { Scene, SceneElement } from "./messages.ts";
 
 // Shows each linked shape's test status on the drawing by restyling its
-// outline. Only the copy sent to the webview changes, never the file.
+// outline. Only the copy sent to the webview changes; undecorate takes the
+// outlines out again before the drawing is saved.
 
 export const OUTLINE_COLORS: Record<MarkerStatus, string> = {
   failed: "#E8590C",
@@ -33,6 +34,38 @@ function outline(element: SceneElement, status: MarkerStatus): SceneElement {
     strokeWidth: Math.max(element.strokeWidth ?? 1, MIN_STROKE_WIDTH),
     // A broken link is drawn dashed, so it differs by more than color.
     ...(status === "broken" ? { strokeStyle: "dashed" } : {}),
+  };
+}
+
+const STYLE_KEYS = ["strokeColor", "strokeWidth", "strokeStyle"] as const;
+
+/**
+ * The drawing to save from what the webview holds: every style decorate
+ * changed goes back to the original, unless the user has since changed it.
+ */
+export function undecorate(edited: Scene, original: Scene, decorated: Scene): Scene {
+  const originals = new Map(original.elements.map((element) => [element.id, element]));
+  const outlines = new Map(decorated.elements.map((element) => [element.id, element]));
+  return {
+    ...edited,
+    elements: edited.elements.map((element) => {
+      const before = originals.get(element.id);
+      const outline = outlines.get(element.id);
+      if (!before || !outline) {
+        return element;
+      }
+      const restored = { ...element };
+      for (const key of STYLE_KEYS) {
+        if (outline[key] !== before[key] && element[key] === outline[key]) {
+          if (before[key] === undefined) {
+            delete restored[key];
+          } else {
+            Object.assign(restored, { [key]: before[key] });
+          }
+        }
+      }
+      return restored;
+    }),
   };
 }
 
