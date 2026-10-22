@@ -8,6 +8,7 @@ end
 
 require "omoteura/config"
 require "omoteura/diagram"
+require "omoteura/link_resolver"
 require "omoteura/magic_comment"
 require "omoteura/resolver"
 require "omoteura/source_index"
