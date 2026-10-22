@@ -138,6 +138,20 @@ RSpec.describe Omoteura::CLI do
     end
   end
 
+  describe "diagram" do
+    it "prints the editor data for a diagram as JSON" do
+      write("ura/app/models/user.excalidraw", drawing_with_link("omoteura:#display_name"))
+
+      status, out, err = run_cli("diagram", File.join(root, "ura/app/models/user.excalidraw"), "--root", root)
+      data = JSON.parse(out)
+
+      expect([status, err]).to eq([0, ""])
+      expect(data["attached_to"]).to eq(["app/models/user.rb"])
+      expect(data["scene"]["elements"].size).to eq(2)
+      expect(data["shapes"].first["target"]).to eq("path" => "app/models/user.rb", "start_line" => 2, "end_line" => 3)
+    end
+  end
+
   it "prints the version" do
     expect(run_cli("version")).to eq([0, "#{Omoteura::VERSION}\n", ""])
   end

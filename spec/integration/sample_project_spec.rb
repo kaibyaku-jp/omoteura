@@ -70,6 +70,17 @@ RSpec.describe "A sample project" do
     ])
   end
 
+  it "describes a diagram with its scene, attached code and test results" do
+    run_rspec
+    out, err, status = run_omoteura("diagram", "ura/spec/models/user_spec.excalidraw.md")
+    data = JSON.parse(out)
+
+    expect([err, status.exitstatus]).to eq(["", 0])
+    expect(data["attached_to"]).to eq(["spec/models/user_spec.rb"])
+    expect(data["scene"]["elements"].size).to eq(5)
+    expect(data["shapes"].map { |s| [s["label"], s.dig("test", "status")] }).to eq([["email 必須", "passed"], ["表示名", "failed"]])
+  end
+
   it "reports the link a renamed spec breaks" do
     spec = File.join(project, "spec/models/user_spec.rb")
     File.write(spec, File.read(spec).sub("requires an email", "needs an email"))

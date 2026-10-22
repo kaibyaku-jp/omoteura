@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
 module Omoteura
-  # Everything an editor needs about one code file, as plain data: the
-  # attached diagram, where each linked shape points and how the tests
-  # behind it did. Broken links and unreadable diagrams are reported in
-  # the data rather than raised, so the editor can show them.
+  # Everything an editor needs about one code file or one diagram, as plain
+  # data: the attached diagram or the code it is attached to, where each
+  # linked shape points and how the tests behind it did. Broken links and
+  # unreadable diagrams are reported in the data rather than raised, so the
+  # editor can show them.
   class Inspector
     FORMAT_VERSION = 1
 
@@ -33,7 +34,33 @@ module Omoteura
       data.merge(error: e.message.delete_prefix("#{@config.root}/"))
     end
 
+    # diagram_path must be an existing file inside the project root. A shared
+    # diagram can be attached to several files; links without a path are
+    # resolved against the first of them.
+    def diagram_report(diagram_path)
+      file = @config.expand(diagram_path) or raise ArgumentError, "#{diagram_path} is outside the project"
+      relative = @config.relative(file)
+      attached_to = code_attached_to(relative)
+      data = {version: FORMAT_VERSION, diagram_path: relative, attached_to: attached_to, scene: nil, shapes: [], error: nil}
+
+      diagram = Diagram.load(file)
+      data[:scene] = diagram.scene
+      data[:shapes] = diagram.linked_elements.map { |element| shape(element, attached_to.first) }
+      data
+    rescue Diagram::NotADiagram, Diagram::ParseError => e
+      data.merge(error: e.message.delete_prefix("#{@config.root}/"))
+    end
+
     private
+
+    def code_attached_to(diagram_path)
+      Project.new(@config).code_paths.select do |code_path|
+        attachment = @resolver.resolve(code_path)
+        attachment && !attachment.missing? && attachment.diagram_path == diagram_path
+      rescue MagicComment::Duplicate, Resolver::InvalidPath
+        false
+      end
+    end
 
     # Where a new plain Excalidraw diagram for the file belongs by the path
     # convention, so an editor can offer to create one.
