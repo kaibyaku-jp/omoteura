@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-labelledby="title">
+  <title id="title">omoteura</title>
+  <defs><clipPath id="hatch"><circle cx="157" cy="94" r="13"/></clipPath></defs>
+    <g transform="rotate(12 130 92)">
+      <path d="M82 34 L176 30 L180 148 L86 152 Z" fill="#FFFFFF" stroke="#1E1E1E" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M141 43 L162 42 L163 63 L142 64 Z" fill="none" stroke="#1E1E1E" stroke-width="4" stroke-linejoin="round"/>
+      <g clip-path="url(#hatch)" stroke="#2A9D8F" stroke-width="3.5" stroke-linecap="round">
+        <path d="M128 108 L156 80 M135 108 L163 80 M142 108 L170 80 M149 108 L177 80 M156 108 L184 80 M163 108 L191 80"/>
+      </g>
+      <circle cx="157" cy="94" r="13" fill="none" stroke="#1E1E1E" stroke-width="4"/>
+      <path d="M146 138 L160 114 L174 138 Z" fill="none" stroke="#1E1E1E" stroke-width="4" stroke-linejoin="round"/>
+    </g>
+    <rect x="22" y="60" width="112" height="124" rx="14" fill="#C8352B"/>
+    <rect x="40" y="84" width="40" height="9" rx="4.5" fill="#FBFAF6"/>
+    <rect x="52" y="102" width="62" height="9" rx="4.5" fill="#F7C873"/>
+    <rect x="52" y="120" width="44" height="9" rx="4.5" fill="#FFC9B8"/>
+    <rect x="40" y="138" width="28" height="9" rx="4.5" fill="#FBFAF6"/>
+    <g fill="none" stroke="#1E1E1E" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M38 46 C 42 30, 54 21, 70 20"/>
+      <path d="M62 13 L72 20 L62 28"/>
+      <path d="M170 170 C 170 183, 162 190, 150 190"/>
+      <path d="M158 183 L148 190 L158 197"/>
+    </g>
+</svg>
