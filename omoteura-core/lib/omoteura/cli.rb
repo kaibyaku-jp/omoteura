@@ -105,8 +105,8 @@ module Omoteura
       parser = OptionParser.new do |o|
         o.banner = "Usage: omoteura draft FILE_OR_GLOB... [options]"
         o.on("--root DIR", "Project root (default: the current directory)") { |dir| options[:root] = dir }
-        o.on("--out PATH", "Write here instead, relative to the root: a .excalidraw file or a directory") { |path| options[:out] = path }
-        o.on("--format FORMAT", %w[json md], "json for .excalidraw (default); md, for Obsidian, is not available yet") { |f| options[:format] = f }
+        o.on("--out PATH", "Write here instead, relative to the root: a file or a directory") { |path| options[:out] = path }
+        o.on("--format FORMAT", %w[json md], "json for .excalidraw (default), or md for an Obsidian .excalidraw.md") { |f| options[:format] = f }
         o.on("--only LIST", Array, "For code other than specs, draw only: #{Draft::CATEGORIES.join(", ")}") { |list| options[:only] = list }
         o.on("--dry-run", "Show what would be written without writing") { options[:dry_run] = true }
         o.on("-h", "--help", "Show this help") do
@@ -116,17 +116,21 @@ module Omoteura
       end
       parser.parse!(args)
       raise OptionParser::InvalidArgument, "expected at least one FILE" if args.empty?
-      raise OptionParser::InvalidArgument, "--format md needs Obsidian output, which is not available yet" if options[:format] == "md"
       unknown = options[:only] - Draft::CATEGORIES
       raise OptionParser::InvalidArgument, "--only does not know #{unknown.join(", ")}" unless unknown.empty?
 
       config = Config.load(options[:root])
       paths = draft_paths(args, config)
-      if options[:out]&.end_with?(".excalidraw") && paths.size > 1
+      format = (options[:format] == "md") ? :obsidian : :excalidraw
+      out_file = options[:out]&.match?(/\.excalidraw(?:\.md)?\z/)
+      if out_file && !options[:out].end_with?(Draft::EXTENSIONS.fetch(format))
+        raise OptionParser::InvalidArgument, "--out #{options[:out]} does not end in #{Draft::EXTENSIONS.fetch(format)}, as --format #{options[:format]} writes"
+      end
+      if out_file && paths.size > 1
         raise OptionParser::InvalidArgument, "--out names one file, but #{paths.size} files match"
       end
 
-      drafter = Draft.new(config, only: options[:only], out: options[:out])
+      drafter = Draft.new(config, only: options[:only], out: options[:out], format: format)
       paths.each { |path| @out.puts draft_line(drafter.draft(path, dry_run: options[:dry_run]), options[:dry_run]) }
       0
     rescue OptionParser::ParseError, Config::Invalid => e

@@ -218,6 +218,32 @@ RSpec.describe Omoteura::Draft do
     end
   end
 
+  describe "for Obsidian" do
+    before { write("app/models/team.rb", "class Team\n  def name\n  end\nend\n") }
+
+    it "writes a note the Obsidian Excalidraw plugin reads, with the same drawing" do
+      note = draft("app/models/team.rb", format: :obsidian)
+      json = draft("app/models/team.rb", out: "team.excalidraw")
+      diagram = Omoteura::Diagram.load(File.join(root, note.diagram_path))
+
+      expect(note).to have_attributes(diagram_path: "ura/app/models/team.excalidraw.md", status: :written)
+      expect(diagram.format).to eq(:obsidian)
+      expect(diagram.scene["elements"].map { |e| e.except("updated") }).to eq(elements(json.diagram_path).map { |e| e.except("updated") })
+      expect(File.read(File.join(root, note.diagram_path))).to include("## Element Links\n#{diagram.linked_elements.first.id}: omoteura:#name\n")
+    end
+
+    it "writes beside an existing diagram as a draft note" do
+      write("ura/app/models/team.excalidraw", "{}")
+
+      expect(draft("app/models/team.rb", format: :obsidian).diagram_path).to eq("ura/app/models/team.draft.excalidraw.md")
+    end
+
+    it "takes --out as a note or a directory" do
+      expect(draft("app/models/team.rb", format: :obsidian, out: "notes").diagram_path).to eq("notes/team.excalidraw.md")
+      expect(draft("app/models/team.rb", format: :obsidian, out: "notes/x.excalidraw.md").diagram_path).to eq("notes/x.excalidraw.md")
+    end
+  end
+
   describe "the drawing" do
     before { write("app/models/team.rb", "class Team\n  def name\n  end\nend\n") }
 
@@ -237,6 +263,7 @@ RSpec.describe Omoteura::Draft do
       box = data["elements"].find { |e| e["type"] == "rectangle" }
       label = data["elements"].find { |e| e["containerId"] == box["id"] }
       expect(box["boundElements"]).to eq([{"type" => "text", "id" => label["id"]}])
+      expect(data["elements"].map { |e| e["id"].size }.uniq).to eq([8])
     end
 
     it "is the same drawing every time, apart from timestamps" do
