@@ -12,6 +12,18 @@ RSpec.describe Omoteura::LZString do
     end
   end
 
+  vectors.each do |vector|
+    it "compresses #{vector["plain"][0, 30].inspect} as lz-string does" do
+      expect(described_class.compress_to_base64(vector["plain"])).to eq(vector["compressed"])
+    end
+  end
+
+  it "round-trips text outside the Basic Multilingual Plane and long repeats" do
+    text = "🔑表と裏" * 200 + "omoteura" * 500
+
+    expect(described_class.decompress_from_base64(described_class.compress_to_base64(text))).to eq(text)
+  end
+
   it "ignores line breaks inside the input" do
     vector = vectors.last
     wrapped = vector["compressed"].scan(/.{1,40}/).join("\n\n")

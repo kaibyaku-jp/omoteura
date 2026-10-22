@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "fileutils"
+require "json"
 require "memory_profiler"
 require "tmpdir"
 require "omoteura/core"
@@ -49,6 +50,14 @@ RSpec.describe "Allocations" do
 
     # About 1.6 now; slicing each statement's whole source to name it made it about 2.4.
     expect(ratio).to be < 2
+  end
+
+  it "compresses a drawing without allocating an object per phrase" do
+    drawing = JSON.generate("elements" => (1..300).map { |i| {"id" => "shape#{i}", "text" => "表と裏 #{i}"} })
+    Omoteura::LZString.compress_to_base64(drawing)
+
+    # About a dozen whatever the size; keying phrases by string would allocate one per phrase.
+    expect(allocated_objects { Omoteura::LZString.compress_to_base64(drawing) }).to be < 50
   end
 
   context "when resolving links" do
