@@ -1,1 +1,5 @@
 ruby_version: 3.4
+ignore:
+  # Uses filter_map on purpose to avoid select's full-size result arrays.
+  - "omoteura-core/lib/omoteura/link_resolver.rb":
+      - Style/MapCompactWithConditionalBlock
