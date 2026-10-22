@@ -15,6 +15,9 @@ module Omoteura
 
     # Returns the diagram path written in the magic comment, or nil.
     def find(source, path: "source")
+      # Most files have no magic comment; skip parsing them.
+      return nil unless source.include?("omoteura:")
+
       result = Prism.parse(source)
       statements = result.value.statements.body
       first_code = statements.first&.location&.start_offset
