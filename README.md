@@ -202,7 +202,8 @@ flips between a file and its diagram with `⌥⌘U` (`Ctrl+Alt+U`). The diagram
 opens in Excalidraw with linked shapes outlined by test status; clicking a
 link opens the code. Saving writes the file's own format, so an Obsidian note
 keeps everything around the drawing, and a change made elsewhere since it
-opened is never overwritten.
+opened is never overwritten. A coverage panel lists which declarations and
+public methods of the open file its specs cover.
 
 
 ## Commands

@@ -80,6 +80,16 @@
         }
       }
     },
+    "views": {
+      "explorer": [
+        {
+          "id": "omoteura.coverage",
+          "name": "Omoteura Coverage",
+          "icon": "media/icon.png",
+          "contextualTitle": "Omoteura"
+        }
+      ]
+    },
     "customEditors": [
       {
         "viewType": "omoteura.diagram",

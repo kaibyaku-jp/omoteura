@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
+import { CoveragePanel } from "./coveragePanel.ts";
 import { DIAGRAM_VIEW_TYPE, DiagramEditorProvider, type DiagramViewState } from "./diagramEditor.ts";
-import { InspectError, inspect, inspectDiagram, type Report } from "./inspect.ts";
+import { type CoverageReport, InspectError, inspect, inspectDiagram, type Report } from "./inspect.ts";
 import {
   hoverEntries,
   MARKER_STATUSES,
@@ -57,6 +58,9 @@ export interface OmoteuraApi {
   openShape(uri: vscode.Uri, elementId: string): Promise<void>;
   /** Changes one element of the open diagram as the user would. */
   editDiagram(uri: vscode.Uri, elementId: string, changes: Record<string, unknown>): void;
+  /** What the coverage panel shows. */
+  coverage(): CoverageReport | undefined;
+  readonly onDidRefreshCoverage: vscode.Event<vscode.Uri>;
 }
 
 export function activate(context: vscode.ExtensionContext): OmoteuraApi {
@@ -86,6 +90,7 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
   const commandFor = (uri: vscode.Uri) =>
     vscode.workspace.getConfiguration("omoteura", uri).get<string[]>("command", DEFAULT_COMMAND);
   const diagrams = new DiagramEditorProvider(context.extensionUri, commandFor, log);
+  const coverage = new CoveragePanel(commandFor, log);
 
   const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
   statusBar.command = "omoteura.flip";
@@ -307,12 +312,14 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
   function refreshEverything(): void {
     refreshVisible();
     diagrams.refreshAll();
+    void coverage.refresh();
   }
 
   context.subscriptions.push(
     log,
     refreshed,
     diagrams,
+    coverage,
     vscode.window.registerCustomEditorProvider(DIAGRAM_VIEW_TYPE, diagrams, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
@@ -325,12 +332,17 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
       render();
       refreshVisible();
     }),
-    vscode.window.onDidChangeActiveTextEditor(renderStatusBar),
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      renderStatusBar();
+      void coverage.show(editor?.document);
+    }),
     vscode.workspace.onDidSaveTextDocument((document) => {
       scheduleRefresh(document);
-      // Saved code can move the lines a diagram's links point to.
+      // Saved code can move the lines a diagram's links point to, and
+      // saved code or specs change what the coverage panel lists.
       if (isCode(document)) {
         diagrams.refreshAll();
+        void coverage.refresh();
       }
     }),
     vscode.workspace.onDidCloseTextDocument((document) => {
@@ -362,6 +374,7 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
   }
 
   refreshVisible();
+  void coverage.show(vscode.window.activeTextEditor?.document);
 
   return {
     report: (uri) => reports.get(uri.toString()),
@@ -375,6 +388,8 @@ export function activate(context: vscode.ExtensionContext): OmoteuraApi {
     onDidRenderDiagram: diagrams.onDidRender,
     openShape: (uri, elementId) => diagrams.openShape(uri, elementId),
     editDiagram: (uri, elementId, changes) => diagrams.edit(uri, elementId, changes),
+    coverage: () => coverage.report,
+    onDidRefreshCoverage: coverage.onDidRefresh,
   };
 }
 

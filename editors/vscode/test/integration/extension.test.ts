@@ -323,6 +323,31 @@ describe("Omoteura", () => {
     assert.equal(api.diagram(diagram)?.dirty, false);
   });
 
+  it("lists what the specs cover in the coverage panel", async () => {
+    const code = file("app/models/user.rb");
+    const refreshed = new Promise<void>((resolve) => {
+      const listener = api.onDidRefreshCoverage((uri) => {
+        if (uri.toString() === code.toString()) {
+          listener.dispose();
+          resolve();
+        }
+      });
+    });
+    await show(code);
+    await refreshed;
+
+    const report = api.coverage();
+    assert.equal(report?.code_path, "app/models/user.rb");
+    assert.deepEqual(report?.spec_paths, ["spec/models/user_spec.rb"]);
+    assert.deepEqual(
+      report?.items.map((item) => [item.name, item.covered, item.examples.map((example) => example.line)]),
+      [
+        ["valid?", false, []],
+        ["display_name", true, [13, 18]],
+      ],
+    );
+  });
+
   it("creates an empty diagram at the conventional path when asked", async () => {
     const code = file("app/models/post.rb");
     await vscode.workspace.fs.writeFile(code, new TextEncoder().encode("class Post\nend\n"));

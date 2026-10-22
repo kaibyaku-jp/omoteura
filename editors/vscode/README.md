@@ -26,6 +26,12 @@ This extension shows those links where you write code.
 - **Save in the file's own format.** An Obsidian note keeps your notes around
   the drawing and stays compressed if it was. If the file changed elsewhere
   since it opened, say in Obsidian, saving stops instead of overwriting it.
+- **See what the specs cover.** The Omoteura Coverage panel in the Explorer
+  lists the open file's validations, associations, callbacks, scopes, enums
+  and public methods, each marked by whether an example names it, failing if
+  one of those failed, or whether its body ran in the last test run when
+  SimpleCov measures coverage. Click an entry to go to it, or to an example.
+  `coverage_panel: false` in `.omoteura.yml` turns it off.
 - **Stays up to date** when you save, when RSpec writes new results or when a
   diagram changes.
 
