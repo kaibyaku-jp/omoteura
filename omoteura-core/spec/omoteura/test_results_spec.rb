@@ -57,6 +57,23 @@ RSpec.describe Omoteura::TestResults do
     end
   end
 
+  describe "#executed?" do
+    it "tells whether any of the lines ran, from the executed lines in the file" do
+      File.write(path, JSON.generate(version: 1, examples: [], executed_lines: {"app/models/user.rb" => [1, 3]}))
+      results = described_class.load(path)
+
+      expect(results.executed?("app/models/user.rb", 2..3)).to be(true)
+      expect(results.executed?("app/models/user.rb", 4..5)).to be(false)
+      expect(results.executed?("app/models/post.rb", 1..2)).to be_nil
+    end
+
+    it "cannot tell when the run did not measure coverage" do
+      File.write(path, JSON.generate(version: 1, examples: []))
+
+      expect(described_class.load(path).executed?("app/models/user.rb", 1..2)).to be_nil
+    end
+  end
+
   describe ".load" do
     it "returns empty results when the file does not exist" do
       expect(described_class.load(File.join(File.dirname(path), "missing.json")).examples).to eq([])
