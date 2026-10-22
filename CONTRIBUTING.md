@@ -17,8 +17,9 @@ Without Nix, use Ruby 3.4 or later.
 ## Running the checks
 
 ```sh
-bundle exec rake          # specs and lint (standard)
+bundle exec rake          # all specs and lint (standard)
 bundle exec rake package  # build the four gems into pkg/
+bundle exec rspec omoteura-core/spec/omoteura/cli_spec.rb  # one spec file
 ```
 
 CI runs the same commands on Ruby 3.4 and 4.0. To run the specs against the
