@@ -45,6 +45,7 @@ module Omoteura
 
     def initialize(root:, diagrams_dir: DEFAULT_DIAGRAMS_DIR, attach: {})
       @root = File.expand_path(root)
+      @root_prefix = (@root + File::SEPARATOR).freeze
       @diagrams_dir = validate_relative_path(diagrams_dir, "diagrams_dir")
       @attach = validate_attach(attach).freeze
     end
@@ -65,10 +66,10 @@ module Omoteura
     private
 
     def inside_root?(path)
-      return false unless path.start_with?(root + File::SEPARATOR)
+      return false unless path.start_with?(@root_prefix)
       return true unless File.exist?(path)
 
-      File.realpath(path).start_with?(File.realpath(root) + File::SEPARATOR)
+      File.realpath(path).start_with?(@real_root_prefix ||= (File.realpath(root) + File::SEPARATOR).freeze)
     end
 
     def validate_relative_path(value, key)

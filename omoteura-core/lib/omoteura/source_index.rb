@@ -11,7 +11,7 @@ module Omoteura
     # :statement, it is the first line of the statement.
     Entry = Data.define(:kind, :name, :start_line, :end_line)
 
-    attr_reader :entries, :line_count
+    attr_reader :entries, :line_count, :spec_entries, :method_entries, :statement_entries
 
     def self.parse_file(path)
       new(File.read(path, encoding: Encoding::UTF_8))
@@ -21,19 +21,12 @@ module Omoteura
       visitor = Visitor.new(source)
       Prism.parse(source).value.accept(visitor)
       @entries = visitor.entries.freeze
+      # Grouped once here; link resolution reads these for every link.
+      by_kind = @entries.group_by(&:kind)
+      @spec_entries = by_kind.fetch(:spec, []).freeze
+      @method_entries = by_kind.fetch(:method, []).freeze
+      @statement_entries = by_kind.fetch(:statement, []).freeze
       @line_count = source.count("\n") + ((source.empty? || source.end_with?("\n")) ? 0 : 1)
-    end
-
-    def spec_entries
-      entries.select { |e| e.kind == :spec }
-    end
-
-    def method_entries
-      entries.select { |e| e.kind == :method }
-    end
-
-    def statement_entries
-      entries.select { |e| e.kind == :statement }
     end
 
     class Visitor < Prism::Visitor
