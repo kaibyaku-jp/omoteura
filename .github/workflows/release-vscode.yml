@@ -1,0 +1,84 @@
+name: Release VS Code extension
+
+# Pushing a v* tag packages the extension and attaches it to the GitHub
+# release that release.yml creates. With VSCE_PAT and OVSX_PAT in the
+# release environment, it also publishes it to the Visual Studio
+# Marketplace and Open VSX. Run it by hand with a tag to publish that
+# release again, as when the tokens were added after it.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The tag to publish, such as v0.1.0
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: release-vscode
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write # attach the .vsix to the GitHub release
+    defaults:
+      run:
+        working-directory: editors/vscode
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          # No dependency cache here: a cache written by another workflow
+          # must not be able to change what gets published.
+          package-manager-cache: false
+      - run: npm ci
+      - name: Check that the tag matches the version
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match version $version"
+            exit 1
+          fi
+          echo "VSIX=omoteura-$version.vsix" >> "$GITHUB_ENV"
+      - run: npm run lint && npm run typecheck && npm test
+      - run: npx vsce package --no-dependencies --out "$VSIX"
+      - name: Attach the extension to the GitHub release
+        run: |
+          # release.yml creates the release once the gems are pushed.
+          for _ in $(seq 1 30); do
+            gh release view "$TAG" > /dev/null 2>&1 && break
+            sleep 20
+          done
+          gh release upload "$TAG" "$VSIX" --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Publish to the Visual Studio Marketplace
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::notice::VSCE_PAT is not set; not publishing to the Marketplace"
+            exit 0
+          fi
+          npx vsce publish --packagePath "$VSIX"
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - name: Publish to Open VSX
+        run: |
+          if [ -z "$OVSX_PAT" ]; then
+            echo "::notice::OVSX_PAT is not set; not publishing to Open VSX"
+            exit 0
+          fi
+          npx ovsx publish "$VSIX"
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
