@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0 - 2026-10-23
+
+The first release.
+
 ### Added
 
 - Gutter markers on the lines a diagram links to, showing the test results

@@ -6,6 +6,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+## 0.1.0 - 2026-10-23
+
+The first release.
+
 ### Added
 
 - Read Excalidraw (`.excalidraw`) and Obsidian Excalidraw (`.md`) drawings,
