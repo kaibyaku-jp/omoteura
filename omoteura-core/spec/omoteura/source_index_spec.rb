@@ -82,6 +82,82 @@ RSpec.describe Omoteura::SourceIndex do
     end
   end
 
+  describe "Minitest tests" do
+    it "makes a test class an example group, and its test blocks and test methods examples" do
+      index = described_class.new(<<~RUBY)
+        require "test_helper"
+
+        class UserTest < ActiveSupport::TestCase
+          setup do
+            @user = users(:aki)
+          end
+
+          test "requires an email" do
+            assert_not User.new(email: nil).valid?
+          end
+
+          test "uses the name" do
+            describe "not a group" do
+            end
+          end
+
+          def test_display_name_falls_back_to_the_email
+          end
+        end
+      RUBY
+
+      expect(index.spec_entries).to eq([
+        entry(:spec, "UserTest", 3, 19, group: true),
+        entry(:spec, "UserTest requires an email", 8, 10),
+        entry(:spec, "UserTest uses the name", 12, 15),
+        entry(:spec, "UserTest test_display_name_falls_back_to_the_email", 17, 18)
+      ])
+      expect(index.method_entries.map(&:name)).to eq(["test_display_name_falls_back_to_the_email"])
+    end
+
+    it "knows a test class by its name or by a parent class named like a test case" do
+      index = described_class.new(<<~RUBY)
+        class Admin::UserTest
+          test "is admin" do
+          end
+        end
+
+        class SignInFlow < ActionDispatch::IntegrationTest
+          test "signs in" do
+          end
+        end
+
+        class Checkout < ApplicationSystemTestCase
+          test "pays" do
+          end
+        end
+      RUBY
+
+      expect(index.spec_entries.map(&:name)).to eq([
+        "Admin::UserTest", "Admin::UserTest is admin",
+        "SignInFlow", "SignInFlow signs in",
+        "Checkout", "Checkout pays"
+      ])
+    end
+
+    it "leaves test calls alone outside test classes and without a block or a description" do
+      index = described_class.new(<<~RUBY)
+        class Recipe
+          test "salt" do
+          end
+        end
+
+        class RecipeTest < Minitest::Test
+          test "boils"
+          test :fries do
+          end
+        end
+      RUBY
+
+      expect(index.spec_entries.map(&:name)).to eq(["RecipeTest"])
+    end
+  end
+
   describe "#method_entries" do
     it "finds instance and singleton methods" do
       index = described_class.new(<<~RUBY)

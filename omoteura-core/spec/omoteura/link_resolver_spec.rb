@@ -128,6 +128,33 @@ RSpec.describe Omoteura::LinkResolver do
     end
   end
 
+  context "with a Minitest test" do
+    before do
+      write("test/models/user_test.rb", <<~RUBY)
+        class UserTest < ActiveSupport::TestCase
+          test "requires an email" do
+          end
+
+          def test_display_name
+          end
+        end
+      RUBY
+    end
+
+    it "resolves a test by its description, as a spec example" do
+      result = resolver.resolve("omoteura:#requires an email", context_path: "test/models/user_test.rb")
+
+      expect(result.target).to eq(target("test/models/user_test.rb", 2, 3))
+    end
+
+    it "still resolves a test method by its name, and the old statement form" do
+      expect(resolver.resolve("omoteura:#test_display_name", context_path: "test/models/user_test.rb").target)
+        .to eq(target("test/models/user_test.rb", 5, 6))
+      expect(resolver.resolve('omoteura:#test "requires an email"', context_path: "test/models/user_test.rb").target)
+        .to eq(target("test/models/user_test.rb", 2, 3))
+    end
+  end
+
   context "with application code" do
     it "resolves a method name" do
       result = resolver.resolve("omoteura:app/models/user.rb#display_name")

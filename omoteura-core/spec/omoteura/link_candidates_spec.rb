@@ -41,6 +41,24 @@ RSpec.describe Omoteura::LinkCandidates do
     ])
   end
 
+  it "offers a Minitest test class and its tests, written either way" do
+    write("test/models/user_test.rb", <<~RUBY)
+      class UserTest < ActiveSupport::TestCase
+        test "requires an email" do
+        end
+
+        def test_display_name
+        end
+      end
+    RUBY
+
+    expect(candidates("test/models/user_test.rb")).to eq([
+      ["group", "UserTest", 1, "omoteura:#UserTest"],
+      ["example", "UserTest requires an email", 2, "omoteura:#UserTest requires an email"],
+      ["example", "UserTest test_display_name", 5, "omoteura:#UserTest test_display_name"]
+    ])
+  end
+
   it "leaves out examples no link can single out" do
     write("spec/models/post_spec.rb", "RSpec.describe Post do\n  it \"works\" do\n  end\n  it \"works\" do\n  end\nend\n")
 

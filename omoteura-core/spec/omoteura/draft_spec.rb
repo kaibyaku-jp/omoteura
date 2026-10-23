@@ -111,6 +111,28 @@ RSpec.describe Omoteura::Draft do
     end
   end
 
+  describe "a Minitest test" do
+    it "draws a box per test, written either way, under the test class" do
+      write("test/models/user_test.rb", <<~RUBY)
+        class UserTest < ActiveSupport::TestCase
+          test "requires an email" do
+          end
+
+          def test_display_name
+          end
+        end
+      RUBY
+
+      result = draft("test/models/user_test.rb")
+
+      expect(result).to have_attributes(diagram_path: "ura/test/models/user_test.excalidraw", shape_count: 2)
+      expect(resolved_links(result.diagram_path, "test/models/user_test.rb")).to eq([
+        ["requires an email", 2],
+        ["test_display_name", 5]
+      ])
+    end
+  end
+
   describe "application code" do
     before do
       write("app/models/user.rb", <<~RUBY)
