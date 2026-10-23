@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.version = Omoteura::VERSION
   spec.authors = ["KAIBYAKU K.K"]
   spec.summary = "Overlay hand-drawn Excalidraw diagrams on Rails and RSpec code"
-  spec.description = "Meta gem that installs omoteura-core and omoteura-rspec."
+  spec.description = "Meta gem that installs omoteura-core, omoteura-rspec and omoteura-minitest."
   spec.homepage = "https://github.com/kaibyaku-jp/omoteura"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.4"
@@ -20,4 +20,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "omoteura-core", Omoteura::VERSION
   spec.add_dependency "omoteura-rspec", Omoteura::VERSION
+  spec.add_dependency "omoteura-minitest", Omoteura::VERSION
 end

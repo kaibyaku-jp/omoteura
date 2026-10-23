@@ -3,14 +3,15 @@
 require "rubygems"
 require_relative "../omoteura-core/lib/omoteura/core/version"
 
-# Guards the three gemspecs, which are easy to get subtly wrong because
+# Guards the gemspecs, which are easy to get subtly wrong because
 # they live in different directories but are released together.
 RSpec.describe "Gem packaging" do
   root = File.expand_path("..", __dir__)
   gems = {
     "omoteura" => root,
     "omoteura-core" => File.join(root, "omoteura-core"),
-    "omoteura-rspec" => File.join(root, "omoteura-rspec")
+    "omoteura-rspec" => File.join(root, "omoteura-rspec"),
+    "omoteura-minitest" => File.join(root, "omoteura-minitest")
   }
 
   gems.each do |name, dir|
@@ -35,7 +36,7 @@ RSpec.describe "Gem packaging" do
     end
   end
 
-  %w[omoteura-core omoteura-rspec editors/vscode].each do |name|
+  %w[omoteura-core omoteura-rspec omoteura-minitest editors/vscode].each do |name|
     it "keeps #{name}/LICENSE identical to the root LICENSE" do
       expect(File.read(File.join(root, name, "LICENSE"))).to eq(File.read(File.join(root, "LICENSE")))
     end

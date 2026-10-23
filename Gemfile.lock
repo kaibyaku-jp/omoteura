@@ -3,6 +3,7 @@ PATH
   specs:
     omoteura (0.1.1)
       omoteura-core (= 0.1.1)
+      omoteura-minitest (= 0.1.1)
       omoteura-rspec (= 0.1.1)
 
 PATH

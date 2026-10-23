@@ -11,6 +11,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Minitest tests are examples, like RSpec's: a test class is an example group
   and its `test "…"` blocks and `test_…` methods are examples, so links can
   name a test by its description, and drafts and the link picker list them.
+- `omoteura-minitest`, a Minitest reporter that records test results like
+  the RSpec formatter, turned on by `require "omoteura/minitest"` in
+  `test/test_helper.rb`. The `omoteura` gem now installs it too.
 - `omoteura coverage` also looks for a file's Minitest test, such as
   `test/models/user_test.rb` for `app/models/user.rb`, beside its spec.
 
