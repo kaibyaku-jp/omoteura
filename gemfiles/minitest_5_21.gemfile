@@ -1,0 +1,6 @@
+# frozen_string_literal: true
+
+# The oldest minitest that omoteura-minitest supports.
+eval_gemfile "../Gemfile"
+
+gem "minitest", "~> 5.21.0"
