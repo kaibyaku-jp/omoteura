@@ -4,7 +4,7 @@ Code in front, context behind.
 
 [Omoteura](https://github.com/kaibyaku-jp/omoteura) puts a hand-drawn
 Excalidraw drawing behind each Ruby file: diagrams, notes and the reasons
-behind the code, with shapes that link to the specs and methods they describe.
+behind the code, with shapes that link to the tests and methods they describe.
 This extension shows those links where you write code.
 
 > **Status:** pre-release.
@@ -34,19 +34,18 @@ This extension shows those links where you write code.
   open file's diagram, with every box linked to its code, and opens it. When
   the file already has one, it adds only what the diagram has no shape for
   yet, beside what is drawn, or drafts a separate file to copy from.
-- **See what the specs cover.** The Omoteura Coverage panel in the Explorer
+- **See what the tests cover.** The Omoteura Coverage panel in the Explorer
   lists the open file's validations, associations, callbacks, scopes, enums
   and public methods, each marked by whether an example names it, failing if
   one of those failed, or whether its body ran in the last test run when
   SimpleCov measures coverage. Click an entry to go to it, or to an example.
   `coverage_panel: false` in `.omoteura.yml` turns it off.
-- **Stays up to date** when you save, when RSpec writes new results or when a
+- **Stays up to date** when you save, when your tests write new results or when a
   diagram changes.
 
 ## Requirements
 
-The `omoteura` gem in your project's Gemfile, with the formatter in `.rspec` to
-see test results:
+The `omoteura` gem in your project's Gemfile:
 
 ```ruby
 group :development, :test do
@@ -54,9 +53,18 @@ group :development, :test do
 end
 ```
 
+To see test results, record them from your test framework. With RSpec, in
+`.rspec`:
+
 ```text
 --format progress
 --format Omoteura::RSpec::Formatter --out tmp/omoteura/results.json
+```
+
+With Minitest, in `test/test_helper.rb`:
+
+```ruby
+require "omoteura/minitest"
 ```
 
 The extension runs `bundle exec omoteura` from the workspace folder. It needs
