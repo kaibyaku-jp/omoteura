@@ -13,10 +13,11 @@ The code is the *omote* (front). Behind it sits an Excalidraw drawing, the
 *ura* (back): diagrams, notes and the reasons behind the code, with shapes
 that link to the tests and methods they describe.
 
-> **Status:** pre-release, not yet on RubyGems. The gems below already resolve
-> links, check them in CI and record test results. The VS Code extension in
-> [editors/vscode](editors/vscode) marks linked lines with their test results,
-> flips between the code and the drawing, and edits the drawing in place.
+> **Status:** early. The gems are on
+> [RubyGems](https://rubygems.org/gems/omoteura) and the extension is on the
+> [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=kaibyaku.omoteura).
+> Until 1.0, minor versions may change how things work; [CHANGELOG.md](CHANGELOG.md)
+> says what changed.
 
 
 ## Features
@@ -221,7 +222,8 @@ themselves.
 
 ## In VS Code
 
-The extension in [editors/vscode](editors/vscode) marks each line a shape
+The [Omoteura extension](https://marketplace.visualstudio.com/items?itemName=kaibyaku.omoteura)
+([source](editors/vscode)) marks each line a shape
 links to with the result of the tests behind it, explains it on hover, and
 flips between a file and its diagram with `⌥⌘U` (`Ctrl+Alt+U`). The diagram
 opens in Excalidraw with linked shapes outlined by test status; clicking a
