@@ -1,12 +1,12 @@
 # Releasing
 
-The four gems (`omoteura-core`, `omoteura-rails`, `omoteura-rspec` and the
-`omoteura` meta gem) share one version and are always released together by
+The three gems (`omoteura-core`, `omoteura-rspec` and the `omoteura` meta
+gem) share one version and are always released together by
 `.github/workflows/release.yml` when a `v*` tag is pushed.
 
 ## One-time setup
 
-1. On RubyGems.org, add a trusted publisher for each of the four gems.
+1. On RubyGems.org, add a trusted publisher for each of the three gems.
    Before the first release, use **pending trusted publishers** under your
    account settings, since the gems do not exist yet.
    - Repository owner: `kaibyaku-jp`
@@ -29,8 +29,8 @@ The four gems (`omoteura-core`, `omoteura-rails`, `omoteura-rspec` and the
 
    ```sh
    git switch main && git pull
-   git tag v0.0.1
-   git push origin v0.0.1
+   git tag v0.1.0
+   git push origin v0.1.0
    ```
 
 The workflow checks that the tag matches `Omoteura::VERSION`, runs the specs

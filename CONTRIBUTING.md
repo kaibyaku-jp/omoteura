@@ -18,7 +18,7 @@ Without Nix, use Ruby 3.4 or later.
 
 ```sh
 bundle exec rake          # all specs and lint (standard)
-bundle exec rake package  # build the four gems into pkg/
+bundle exec rake package  # build the three gems into pkg/
 bundle exec rspec omoteura-core/spec/omoteura/cli_spec.rb  # one spec file
 ```
 
@@ -57,7 +57,6 @@ after numbers in pull requests that touch those paths.
 | directory | gem |
 | --- | --- |
 | `omoteura-core/` | diagrams, links, attachments and the `omoteura` command |
-| `omoteura-rails/` | Rails analysis |
 | `omoteura-rspec/` | the RSpec formatter |
 | `lib/` (root) | the `omoteura` meta gem |
 | `editors/vscode/` | the VS Code extension |
