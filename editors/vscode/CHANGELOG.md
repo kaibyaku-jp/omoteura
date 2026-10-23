@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.1.1 - 2026-10-23
+
+### Changed
+
+- Leave out excalidraw.com's Firebase settings, for collaboration and
+  sharing the extension does not offer, which Open VSX refused as an API
+  key.
+
 ## 0.1.0 - 2026-10-23
 
 The first release.

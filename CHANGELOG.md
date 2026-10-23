@@ -6,6 +6,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+## 0.1.1 - 2026-10-23
+
+No changes to the gems. Released with the same version as the VS Code
+extension, which leaves out excalidraw.com's settings it never used.
+
 ## 0.1.0 - 2026-10-23
 
 The first release.
