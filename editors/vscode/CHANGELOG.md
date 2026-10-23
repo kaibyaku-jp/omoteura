@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.0 - 2026-10-23
+
+### Changed
+
+- The coverage panel also lists Minitest tests, from `test/…_test.rb`, and
+  says "No spec or test found" when a file has neither.
+
 ## 0.1.1 - 2026-10-23
 
 ### Changed

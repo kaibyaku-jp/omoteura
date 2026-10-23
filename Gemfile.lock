@@ -1,28 +1,28 @@
 PATH
   remote: .
   specs:
-    omoteura (0.1.1)
-      omoteura-core (= 0.1.1)
-      omoteura-minitest (= 0.1.1)
-      omoteura-rspec (= 0.1.1)
+    omoteura (0.2.0)
+      omoteura-core (= 0.2.0)
+      omoteura-minitest (= 0.2.0)
+      omoteura-rspec (= 0.2.0)
 
 PATH
   remote: omoteura-core
   specs:
-    omoteura-core (0.1.1)
+    omoteura-core (0.2.0)
 
 PATH
   remote: omoteura-minitest
   specs:
-    omoteura-minitest (0.1.1)
+    omoteura-minitest (0.2.0)
       minitest (>= 5.21, < 7)
-      omoteura-core (= 0.1.1)
+      omoteura-core (= 0.2.0)
 
 PATH
   remote: omoteura-rspec
   specs:
-    omoteura-rspec (0.1.1)
-      omoteura-core (= 0.1.1)
+    omoteura-rspec (0.2.0)
+      omoteura-core (= 0.2.0)
       rspec-core (>= 3.12, < 4)
 
 GEM
