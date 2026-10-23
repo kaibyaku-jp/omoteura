@@ -70,3 +70,25 @@ after numbers in pull requests that touch those paths.
 
 Please report security issues privately as described in
 [SECURITY.md](SECURITY.md), not in public issues.
+
+## Branches and releases
+
+Omoteura works on one branch, `main`, as RuboCop, kaminari and Tapioca do.
+
+- Every change is a short-lived branch merged into `main` through a pull
+  request. There is no `develop` branch, and no long-lived feature branch:
+  a large feature lands as a series of small pull requests, tracked by a
+  milestone and a parent issue.
+- `main` can be released at any time. Parts of a feature that is not done
+  yet may be merged when nothing reaches them yet or they are off unless
+  turned on, and they are not described in the README or CHANGELOG until
+  they work.
+- A release is a `v*` tag on `main` (see RELEASING.md). Versions follow
+  Semantic Versioning: new features raise the minor version, fixes alone the
+  patch version. While the version is 0.x, a change that breaks
+  compatibility also raises the minor version and is called out in the
+  CHANGELOG.
+- A maintenance branch such as `0-1-stable` is made only when a fix has to
+  reach an older version while `main` holds unreleased work. It starts from
+  that version's tag, takes the fix by cherry-pick, and is released by
+  tagging it like `main`.
