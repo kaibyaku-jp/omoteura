@@ -1,6 +1,6 @@
 name: Release
 
-# Pushing a tag such as v0.1.0 publishes the three gems to RubyGems.org
+# Pushing a tag such as v0.1.0 publishes the gems to RubyGems.org
 # through trusted publishing and creates a GitHub release. See RELEASING.md.
 
 on:
@@ -45,7 +45,7 @@ jobs:
       - name: Push the gems, dependencies first
         run: |
           version="${GITHUB_REF_NAME#v}"
-          for name in omoteura-core omoteura-rspec omoteura; do
+          for name in omoteura-core omoteura-rspec omoteura-minitest omoteura; do
             gem push "pkg/$name-$version.gem"
           done
       - name: Create the GitHub release

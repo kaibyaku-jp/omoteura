@@ -82,7 +82,8 @@ end
 | gem | contents |
 | --- | --- |
 | `omoteura-core` | Diagram files, `omoteura:` links and the `omoteura` command |
-| `omoteura-rspec` | A formatter that records test results for diagrams |
+| `omoteura-rspec` | A formatter that records RSpec results for diagrams |
+| `omoteura-minitest` | A reporter that records Minitest results for diagrams |
 
 
 ## Attaching Diagrams

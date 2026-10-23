@@ -1,12 +1,12 @@
 # Releasing
 
-The three gems (`omoteura-core`, `omoteura-rspec` and the `omoteura` meta
-gem) share one version and are always released together by
+The gems (`omoteura-core`, `omoteura-rspec`, `omoteura-minitest` and the
+`omoteura` meta gem) share one version and are always released together by
 `.github/workflows/release.yml` when a `v*` tag is pushed.
 
 ## One-time setup
 
-1. On RubyGems.org, add a trusted publisher for each of the three gems.
+1. On RubyGems.org, add a trusted publisher for each of the gems.
    Before the first release, use **pending trusted publishers** under your
    account settings, since the gems do not exist yet.
    - Repository owner: `kaibyaku-jp`

@@ -43,6 +43,9 @@ jobs:
           # The oldest rspec-core that omoteura-rspec supports.
           - ruby: "3.4"
             gemfile: gemfiles/rspec_3_12.gemfile
+          # The oldest minitest that omoteura-minitest supports.
+          - ruby: "3.4"
+            gemfile: gemfiles/minitest_5_21.gemfile
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
       # Lint, dogfooding and packaging need to run once, not per Ruby.
