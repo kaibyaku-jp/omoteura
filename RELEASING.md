@@ -21,7 +21,10 @@ gem) share one version and are always released together by
    [Visual Studio Marketplace](https://marketplace.visualstudio.com/manage)
    and the `kaibyaku` namespace on [Open VSX](https://open-vsx.org), and put
    their tokens in the `release` environment as `VSCE_PAT` (an Azure DevOps
-   token with the Marketplace › Manage scope) and `OVSX_PAT`.
+   token with the Marketplace › Manage scope) and `OVSX_PAT`. Creating an
+   Azure DevOps organization needs an Azure subscription; without one, leave
+   `VSCE_PAT` unset and upload the `.vsix` from the GitHub release at
+   <https://marketplace.visualstudio.com/manage/publishers/kaibyaku> instead.
 
 ## Each release
 
@@ -47,4 +50,5 @@ GitHub release with the built gems attached.
 the tag matches the extension's version, packages it, attaches the `.vsix`
 to the release and publishes it to both marketplaces when their tokens are
 set. Without the tokens it only attaches the `.vsix`; once they are added,
-run the workflow by hand with the tag to publish that release.
+run the workflow by hand from the tag (`gh workflow run release-vscode.yml
+--ref v0.1.1 -f tag=v0.1.1`) to publish that release.
