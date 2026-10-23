@@ -2,7 +2,7 @@
   "name": "omoteura",
   "displayName": "Omoteura",
   "description": "Code in front, context behind. Flip Ruby code to the Excalidraw drawing behind it and see test results next to the lines it links to.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "kaibyaku",
   "license": "MIT",
   "private": true,
