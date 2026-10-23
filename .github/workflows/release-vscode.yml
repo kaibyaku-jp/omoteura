@@ -3,8 +3,9 @@ name: Release VS Code extension
 # Pushing a v* tag packages the extension and attaches it to the GitHub
 # release that release.yml creates. With VSCE_PAT and OVSX_PAT in the
 # release environment, it also publishes it to the Visual Studio
-# Marketplace and Open VSX. Run it by hand with a tag to publish that
-# release again, as when the tokens were added after it.
+# Marketplace and Open VSX. To publish a release again, as when the tokens
+# were added after it, run it by hand from that tag ("Use workflow from")
+# with the same tag as input: the release environment accepts v* tags only.
 
 on:
   push:
