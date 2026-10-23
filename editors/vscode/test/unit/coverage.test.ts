@@ -89,7 +89,10 @@ describe("coverageMessage", () => {
       "Turned off by coverage_panel: false in .omoteura.yml.",
     );
     assert.equal(coverageMessage(report([])), "app/models/user.rb has no declarations or public methods to list.");
-    assert.equal(coverageMessage(report([item()], { spec_paths: [] })), "No spec found for app/models/user.rb.");
+    assert.equal(
+      coverageMessage(report([item()], { spec_paths: [] })),
+      "No spec or test found for app/models/user.rb.",
+    );
     assert.equal(coverageMessage(report([item()])), undefined);
   });
 });

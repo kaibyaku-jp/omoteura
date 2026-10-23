@@ -75,7 +75,7 @@ export function coverageMessage(report: CoverageReport): string | undefined {
     return `${report.code_path} has no declarations or public methods to list.`;
   }
   if (report.spec_paths.length === 0) {
-    return `No spec found for ${report.code_path}.`;
+    return `No spec or test found for ${report.code_path}.`;
   }
   return undefined;
 }
