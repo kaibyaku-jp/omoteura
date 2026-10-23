@@ -16,25 +16,44 @@ const common = {
   logLevel: "info",
 };
 
-// Excalidraw adds a CDN copy of its fonts after the asset path it is given.
-// The webview's CSP blocks that request, but the address should not ship in
-// the extension at all, so the fallback is pointed at the asset path too.
-const FONT_CDN_FALLBACK = /"ASSETS_FALLBACK_URL",\s*`https:\/\/esm\.sh\/[\s\S]*?\/dist\/(?:prod|dev)\/`/;
-const noFontCdn = {
-  name: "no-font-cdn",
+// Rewrites in Excalidraw's own files, each found by a marker and checked
+// so that an update to Excalidraw fails the build instead of slipping by.
+const REWRITES = [
+  {
+    // Excalidraw adds a CDN copy of its fonts after the asset path it is
+    // given. The webview's CSP blocks that request, but the address should
+    // not ship in the extension at all, so the fallback is pointed at the
+    // asset path too.
+    marker: "ASSETS_FALLBACK_URL",
+    pattern: /"ASSETS_FALLBACK_URL",\s*`https:\/\/esm\.sh\/[\s\S]*?\/dist\/(?:prod|dev)\/`/,
+    replacement: '"ASSETS_FALLBACK_URL",window.EXCALIDRAW_ASSET_PATH',
+  },
+  {
+    // excalidraw.com's Firebase settings, for its collaboration and sharing,
+    // come built in. The extension uses neither, and registries such as
+    // Open VSX refuse a package with something that looks like an API key.
+    marker: "VITE_APP_FIREBASE_CONFIG",
+    pattern: /VITE_APP_FIREBASE_CONFIG:\s*'\{[^']*\}'/,
+    replacement: "VITE_APP_FIREBASE_CONFIG:'{}'",
+  },
+];
+const excalidrawRewrites = {
+  name: "excalidraw-rewrites",
   setup(build) {
     build.onLoad({ filter: /@excalidraw[\\/]excalidraw[\\/]dist[\\/].*\.js$/ }, async ({ path }) => {
       const source = await readFile(path, "utf8");
-      if (!source.includes("ASSETS_FALLBACK_URL")) {
+      const rewrites = REWRITES.filter(({ marker }) => source.includes(marker));
+      if (rewrites.length === 0) {
         return undefined;
       }
-      if (!FONT_CDN_FALLBACK.test(source)) {
-        throw new Error(`Excalidraw's font fallback changed in ${path}; update FONT_CDN_FALLBACK in esbuild.mjs`);
+      let contents = source;
+      for (const { marker, pattern, replacement } of rewrites) {
+        if (!pattern.test(contents)) {
+          throw new Error(`Excalidraw's ${marker} changed in ${path}; update REWRITES in esbuild.mjs`);
+        }
+        contents = contents.replace(pattern, replacement);
       }
-      return {
-        contents: source.replace(FONT_CDN_FALLBACK, '"ASSETS_FALLBACK_URL",window.EXCALIDRAW_ASSET_PATH'),
-        loader: "js",
-      };
+      return { contents, loader: "js" };
     });
   },
 };
@@ -55,7 +74,7 @@ const builds = [
     loader: { ".woff2": "file" },
     assetNames: "assets/[name]-[hash]",
     alias: { "@excalidraw/mermaid-to-excalidraw": "./webview/stubs/mermaid-to-excalidraw.ts" },
-    plugins: [noFontCdn],
+    plugins: [excalidrawRewrites],
     define: { "process.env.NODE_ENV": JSON.stringify(watch ? "development" : "production") },
     minify: !watch,
     sourcemap: watch,
@@ -89,7 +108,11 @@ if (watch) {
   // Kept for checking what the webview bundle contains.
   // Outside dist/webview, which is packaged whole.
   await writeFile("dist/webview-meta.json", JSON.stringify(results[1].metafile));
-  if ((await readFile("dist/webview/main.js", "utf8")).includes("esm.sh")) {
+  const webview = await readFile("dist/webview/main.js", "utf8");
+  if (webview.includes("esm.sh")) {
     throw new Error("The webview bundle still refers to esm.sh");
+  }
+  if (/AIza[0-9A-Za-z_-]{35}/.test(webview)) {
+    throw new Error("The webview bundle still contains a Google API key");
   }
 }
