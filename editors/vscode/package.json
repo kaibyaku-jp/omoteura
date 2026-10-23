@@ -156,7 +156,8 @@
     "lint": "biome check .",
     "test": "node --test \"test/unit/**/*.test.ts\"",
     "test:integration": "node esbuild.mjs --tests && node test/integration/prepare.mjs && node test/integration/run.mjs",
-    "package": "vsce package --no-dependencies"
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "node esbuild.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.2",
@@ -169,6 +170,7 @@
     "@vscode/vsce": "4.0.0",
     "esbuild": "0.28.2",
     "mocha": "12.0.3",
+    "ovsx": "1.2.0",
     "typescript": "7.0.2"
   },
   "dependencies": {
@@ -181,6 +183,9 @@
     "nanoid@>=4 <6": "5.1.16",
     "lodash-es": "4.18.1",
     "katex": "0.18.11",
-    "chokidar@<4": "4.0.3"
+    "chokidar@<4": "4.0.3",
+    "ovsx": {
+      "@vscode/vsce": "$@vscode/vsce"
+    }
   }
 }
