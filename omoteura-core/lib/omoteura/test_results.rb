@@ -1,14 +1,16 @@
 # frozen_string_literal: true
 
 require "json"
+require "omoteura/results_file"
 
 module Omoteura
-  # Test results written by Omoteura::RSpec::Formatter.
+  # Test results written by Omoteura::RSpec::Formatter or the Minitest
+  # reporter; see ResultsFile.
   class TestResults
     class Invalid < Error; end
 
-    DEFAULT_PATH = "tmp/omoteura/results.json"
-    SUPPORTED_VERSION = 1
+    DEFAULT_PATH = ResultsFile::DEFAULT_PATH
+    SUPPORTED_VERSION = ResultsFile::FORMAT_VERSION
 
     Example = Data.define(:file_path, :line_number, :full_description, :status, :message)
 
