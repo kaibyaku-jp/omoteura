@@ -5,6 +5,7 @@ module Omoteura
   # for the editor's coverage panel. Separate from diagrams: it works on any
   # file and needs none.
   #
+  # The examples are RSpec's or Minitest's, from the file's spec or test.
   # An item counts as covered by an example that names it, in the example's
   # description or its code: "validates :email" by an example mentioning
   # email, "def display_name" by one inside describe "#display_name". The
@@ -40,16 +41,19 @@ module Omoteura
     Example = Data.define(:path, :line, :label, :description, :source, :status)
     private_constant :ONE_LINER, :Example
 
-    # The specs for a file by RSpec's conventions: app/models/user.rb is
-    # tested in spec/models/user_spec.rb, lib/a/b.rb in spec/a/b_spec.rb or
-    # spec/lib/a/b_spec.rb.
+    # The tests for a file by RSpec's and Rails' conventions:
+    # app/models/user.rb is tested in spec/models/user_spec.rb or
+    # test/models/user_test.rb, lib/a/b.rb in spec/a/b_spec.rb,
+    # spec/lib/a/b_spec.rb, test/a/b_test.rb or test/lib/a/b_test.rb. A
+    # project with both kinds gets both.
     def spec_paths(code_path)
       base = code_path.delete_suffix(File.extname(code_path))
-      candidates =
-        if base.start_with?("app/") then ["spec/#{base.delete_prefix("app/")}_spec.rb"]
-        elsif base.start_with?("lib/") then ["spec/#{base.delete_prefix("lib/")}_spec.rb", "spec/#{base}_spec.rb"]
-        else ["spec/#{base}_spec.rb"]
+      names =
+        if base.start_with?("app/") then [base.delete_prefix("app/")]
+        elsif base.start_with?("lib/") then [base.delete_prefix("lib/"), base]
+        else [base]
         end
+      candidates = names.map { |name| "spec/#{name}_spec.rb" } + names.map { |name| "test/#{name}_test.rb" }
       candidates.select { |path| (full = @config.expand(path)) && File.file?(full) }
     end
 
@@ -66,7 +70,9 @@ module Omoteura
       (described + undescribed).sort_by(&:start_line).map do |entry|
         result = recorded[entry.start_line]
         static = (entry.kind == :spec) ? entry.name : nil
-        description = [static, result&.full_description].compact.uniq.join("\n")
+        # A Minitest test method, such as test_total, names what it tests
+        # between underscores.
+        description = [static, static&.tr("_", " "), result&.full_description].compact.uniq.join("\n")
         Example.new(path: spec_path, line: entry.start_line, label: static || result&.full_description || entry.name, description: description,
           source: lines[(entry.start_line - 1)...entry.end_line].join, status: result&.status)
       end

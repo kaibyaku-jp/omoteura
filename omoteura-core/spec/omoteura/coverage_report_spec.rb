@@ -125,12 +125,52 @@ RSpec.describe Omoteura::CoverageReport do
     end
   end
 
+  it "finds a Minitest test for the file, by Rails' conventions" do
+    write("spec/models/user_spec.rb", "")
+    File.delete(File.join(root, "spec/models/user_spec.rb"))
+    write("test/models/user_test.rb", <<~RUBY)
+      class UserTest < ActiveSupport::TestCase
+        test "requires an email" do
+        end
+
+        test "display name uses the name" do
+        end
+      end
+    RUBY
+
+    data = report("app/models/user.rb")
+
+    expect(data[:spec_paths]).to eq(["test/models/user_test.rb"])
+    expect(data[:items].to_h { |item| [item[:name], item[:examples].map { |e| e[:line] }] }).to include(
+      "validates :email, presence: true" => [2], "display_name" => [5], "belongs_to :team" => []
+    )
+  end
+
+  it "uses both a spec and a test when a project has both" do
+    write("test/models/user_test.rb", "class UserTest < ActiveSupport::TestCase\n  test \"has a team\" do\n  end\nend\n")
+
+    data = report("app/models/user.rb")
+
+    expect(data[:spec_paths]).to eq(["spec/models/user_spec.rb", "test/models/user_test.rb"])
+    expect(data[:items].find { |item| item[:name] == "belongs_to :team" }[:examples]).to eq([
+      {path: "test/models/user_test.rb", line: 2, description: "UserTest has a team", status: nil}
+    ])
+  end
+
   it "lists the items as untested when the file has no spec" do
     write("app/models/post.rb", "class Post\n  def title\n  end\nend\n")
 
     expect(report("app/models/post.rb")).to include(spec_paths: [], items: [
       {kind: "methods", name: "title", start_line: 2, end_line: 3, covered: false, executed: nil, examples: []}
     ])
+  end
+
+  it "finds the test of code under lib with or without lib in the path" do
+    write("lib/billing/invoice.rb", "class Invoice\n  def total\n  end\nend\n")
+    write("test/lib/billing/invoice_test.rb", "class InvoiceTest < Minitest::Test\n  def test_total\n  end\nend\n")
+
+    expect(report("lib/billing/invoice.rb")[:spec_paths]).to eq(["test/lib/billing/invoice_test.rb"])
+    expect(coverage("lib/billing/invoice.rb")).to eq([["total", true, [2]]])
   end
 
   it "finds the spec of code under lib with or without lib in the spec path" do
