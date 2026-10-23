@@ -6,6 +6,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Added
+
+- Minitest tests are examples, like RSpec's: a test class is an example group
+  and its `test "…"` blocks and `test_…` methods are examples, so links can
+  name a test by its description, and drafts and the link picker list them.
+
 ## 0.1.1 - 2026-10-23
 
 No changes to the gems. Released with the same version as the VS Code

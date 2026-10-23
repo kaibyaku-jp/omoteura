@@ -36,7 +36,9 @@ module Omoteura
       EXAMPLE_GROUPS = %i[describe context feature example_group xdescribe xcontext xfeature fdescribe fcontext ffeature].freeze
       EXAMPLES = %i[it specify example scenario xit xspecify xexample xscenario fit fspecify fexample fscenario].freeze
 
-      Group = Data.define(:description, :module)
+      # test_class is true for a Minitest test class, where test "…" blocks
+      # are examples.
+      Group = Data.define(:description, :module, :test_class)
 
       attr_reader :entries
 
@@ -57,10 +59,29 @@ module Omoteura
       def visit_def_node(node)
         name = node.receiver.is_a?(Prism::SelfNode) ? "self.#{node.name}" : node.name.name
         add(:method, name, node)
+        # def test_… in a test class is a test as much as test "…" is. A link
+        # by its name finds the example first, at the same line.
+        if node.receiver.nil? && @groups.last&.test_class && name.start_with?("test_")
+          description = full_description(name)
+          add(:spec, description, node) if description
+        end
         super
       end
 
+      # A Minitest test class is an example group described by its name, as
+      # "UserTest", so that its tests are examples like RSpec's.
+      def visit_class_node(node)
+        return super unless test_class?(node)
+
+        description = full_description(node.constant_path.slice)
+        add(:spec, description, node, group: true) if description
+        @groups.push(Group.new(description: description, module: true, test_class: true))
+        super
+        @groups.pop
+      end
+
       def visit_call_node(node)
+        return visit_minitest_test(node) if minitest_test?(node)
         return super unless spec_call?(node)
 
         part, is_module = description_of(node)
@@ -68,7 +89,7 @@ module Omoteura
         add(:spec, description, node, group: EXAMPLE_GROUPS.include?(node.name)) if description
 
         if EXAMPLE_GROUPS.include?(node.name)
-          @groups.push(Group.new(description: description, module: is_module))
+          @groups.push(Group.new(description: description, module: is_module, test_class: false))
           super
           @groups.pop
         else
@@ -77,6 +98,33 @@ module Omoteura
       end
 
       private
+
+      # test "requires an email" do … end, as ActiveSupport::TestCase defines
+      # tests, directly in a test class.
+      def minitest_test?(node)
+        node.name == :test && node.receiver.nil? && node.block && @groups.last&.test_class &&
+          node.arguments&.arguments&.first.is_a?(Prism::StringNode) || false
+      end
+
+      def visit_minitest_test(node)
+        description = full_description(node.arguments.arguments.first.unescaped)
+        add(:spec, description, node) if description
+        # Groups opened inside the test are not examples of the class.
+        @groups.push(Group.new(description: nil, module: false, test_class: false))
+        visit_child_nodes(node)
+        @groups.pop
+      end
+
+      # A class named like UserTest, or one that inherits from a class named
+      # like ActiveSupport::TestCase or Minitest::Test. Symbols are compared
+      # so that ordinary classes cost no allocation.
+      def test_class?(node)
+        return true if node.name.end_with?("Test")
+
+        superclass = node.superclass
+        (superclass.is_a?(Prism::ConstantReadNode) || superclass.is_a?(Prism::ConstantPathNode)) &&
+          superclass.name.end_with?("Test", "TestCase")
+      end
 
       # Cuts the statement's first line out of the source by byte offsets.
       # Slicing the whole statement would copy most of the file for every
