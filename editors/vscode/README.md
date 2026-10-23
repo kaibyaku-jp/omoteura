@@ -7,7 +7,8 @@ Excalidraw drawing behind each Ruby file: diagrams, notes and the reasons
 behind the code, with shapes that link to the tests and methods they describe.
 This extension shows those links where you write code.
 
-> **Status:** pre-release.
+> **Status:** early. Until 1.0, minor versions may change how things work;
+> the [CHANGELOG](CHANGELOG.md) says what changed.
 
 ## Features
 
