@@ -3,7 +3,7 @@
 require "omoteura/core"
 
 RSpec.describe Omoteura do
-  it "has a version number" do
-    expect(Omoteura::VERSION).to eq("0.0.1")
+  it "has a version RubyGems accepts" do
+    expect(Gem::Version.correct?(Omoteura::VERSION)).to be(true)
   end
 end
