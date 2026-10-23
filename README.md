@@ -11,7 +11,7 @@ Code in front, context behind.
 
 The code is the *omote* (front). Behind it sits an Excalidraw drawing, the
 *ura* (back): diagrams, notes and the reasons behind the code, with shapes
-that link to the specs and methods they describe.
+that link to the tests and methods they describe.
 
 > **Status:** pre-release, not yet on RubyGems. The gems below already resolve
 > links, check them in CI and record test results. The VS Code extension in
@@ -55,7 +55,7 @@ as well as time. Files without a magic comment are skipped without allocating.
 
 * Rails 7.1, 7.2, 8.0, 8.1 projects; Omoteura reads their files and never loads Rails
 
-* RSpec 3.12+
+* RSpec 3.12+ or Minitest 5.21+
 
 * Excalidraw (`.excalidraw`) and Obsidian Excalidraw (`.excalidraw.md`)
 
@@ -71,7 +71,7 @@ end
 ```
 
 `require: false` keeps Rails from loading Omoteura into your application; the
-`omoteura` command and RSpec load what they need. Then bundle:
+`omoteura` command and your test framework load what they need. Then bundle:
 
 ```sh
 % bundle
@@ -189,19 +189,34 @@ Actions, add `--format github` to see the problems as annotations.
 
 ## Recording Test Results
 
-Add the formatter to `.rspec`, next to your usual one:
+With RSpec, add the formatter to `.rspec`, next to your usual one:
 
 ```text
 --format progress
 --format Omoteura::RSpec::Formatter --out tmp/omoteura/results.json
 ```
 
-Each example's status and failure message go to `tmp/omoteura/results.json`.
-Keep `tmp/omoteura/` out of version control.
+With Minitest, including Rails' `bin/rails test`, require the reporter in
+`test/test_helper.rb`:
+
+```ruby
+require "omoteura/minitest"
+```
+
+Each test's status and failure message go to `tmp/omoteura/results.json`
+(for Minitest, `OMOTEURA_RESULTS` names another path). Keep `tmp/omoteura/`
+out of version control.
+
+Minitest tests link like RSpec examples: in a test class such as
+`UserTest < ActiveSupport::TestCase`, `test "requires an email"` is
+`omoteura:#requires an email`, and `def test_display_name` is
+`omoteura:#test_display_name`. The coverage panel looks for
+`test/models/user_test.rb` as well as `spec/models/user_spec.rb`.
 
 When something already measures coverage, as SimpleCov does, the formatter
-also records which lines of your code ran, so the coverage panel can tell
-which methods the tests called. It never starts coverage itself.
+and the reporter also record which lines of your code ran, so the coverage
+panel can tell which methods the tests called. They never start coverage
+themselves.
 
 
 ## In VS Code
@@ -213,7 +228,7 @@ opens in Excalidraw with linked shapes outlined by test status; clicking a
 link opens the code. Saving writes the file's own format, so an Obsidian note
 keeps everything around the drawing, and a change made elsewhere since it
 opened is never overwritten. A coverage panel lists which declarations and
-public methods of the open file its specs cover.
+public methods of the open file its tests cover.
 
 
 ## Commands
@@ -225,7 +240,7 @@ public methods of the open file its specs cover.
 | `omoteura inspect FILE` | Print one file's diagram, links and test results as JSON, for editors |
 | `omoteura diagram FILE` | Print one diagram's drawing, links and test results as JSON, for editors |
 | `omoteura links FILE` | Print the places in one code file a shape can link to, with their links, as JSON, for editors |
-| `omoteura coverage FILE` | Print which declarations and public methods of one file its specs cover, as JSON, for editors |
+| `omoteura coverage FILE` | Print which declarations and public methods of one file its tests cover, as JSON, for editors |
 | `omoteura save FILE` | Save a drawing an editor changed, read as JSON from stdin, in the file's format |
 | `omoteura version` | Print the version |
 
