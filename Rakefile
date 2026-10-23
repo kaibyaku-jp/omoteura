@@ -12,9 +12,9 @@ end
 
 task default: %i[spec standard]
 
-GEMS = %w[omoteura-core omoteura-rails omoteura-rspec omoteura].freeze
+GEMS = %w[omoteura-core omoteura-rspec omoteura].freeze
 
-desc "Build all four gems into pkg/"
+desc "Build all three gems into pkg/"
 task :package do
   require "fileutils"
   pkg = File.expand_path("pkg", __dir__)

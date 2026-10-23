@@ -53,7 +53,7 @@ as well as time. Files without a magic comment are skipped without allocating.
 
 * Ruby 3.4, 4.0
 
-* Rails 7.1, 7.2, 8.0, 8.1
+* Rails 7.1, 7.2, 8.0, 8.1 projects; Omoteura reads their files and never loads Rails
 
 * RSpec 3.12+
 
@@ -82,7 +82,6 @@ end
 | gem | contents |
 | --- | --- |
 | `omoteura-core` | Diagram files, `omoteura:` links and the `omoteura` command |
-| `omoteura-rails` | Analysis of Rails models, controllers and services (planned) |
 | `omoteura-rspec` | A formatter that records test results for diagrams |
 
 
