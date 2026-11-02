@@ -183,9 +183,6 @@
     "nanoid@>=4 <6": "5.1.16",
     "lodash-es": "4.18.1",
     "katex": "0.18.11",
-    "chokidar@<4": "4.0.3",
-    "ovsx": {
-      "@vscode/vsce": "$@vscode/vsce"
-    }
+    "chokidar@<4": "4.0.3"
   }
 }
